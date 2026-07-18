@@ -1846,6 +1846,9 @@ text-* variant utilities. */ .btn-arc {
 
 /* === Mobile: full-screen modals === */
 @media (hover: none) and (pointer: coarse) {
+  [data-slot='thread-list'] {
+    padding-bottom: 50px !important;
+  }
   /* Dialog content fills the screen */
   [data-slot='dialog-content'] {
     width: 100vw !important;
@@ -1863,6 +1866,9 @@ text-* variant utilities. */ .btn-arc {
   [data-mobile-tabbar] { display: none !important; }
 }
 @media (hover: none) and (pointer: coarse) {
+  [data-slot='thread-list'] {
+    padding-bottom: 50px !important;
+  }
   [data-mobile-tabbar] { display: flex !important; }
   [data-slot='dialog-content'] {
     width: 100vw !important;

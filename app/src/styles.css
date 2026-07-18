@@ -1878,7 +1878,7 @@ text-* variant utilities. */ .btn-arc {
   [data-slot="statusbar"] { display: none !important; }
   /* Composer sits above tab bar */
   [data-slot='composer-root'] {
-    bottom: calc(max(env(safe-area-inset-bottom, 0px), 6px) + 1.5rem) !important;
+    bottom: calc(max(env(safe-area-inset-bottom, 0px), 6px) + 2.75rem) !important;
   }
   /* Padding so last message isn't hidden behind composer */
 

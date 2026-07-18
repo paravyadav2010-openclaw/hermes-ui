@@ -23,7 +23,7 @@ export function MobileLayout({ children, sidebar, fileBrowser, review, terminal,
 
   return (
     <div className="flex h-dvh flex-col bg-(--dt-background)">
-      <div className="flex-1 min-h-0 overflow-hidden">{children}</div>
+      <div className="flex-1 min-h-0 overflow-hidden" >{children}</div>
       <TabBar />
       <MobileDrawer id="chat-sidebar" title="Sessions">
         <SidebarProvider className="flex min-h-0 flex-1 flex-col">{sidebar}</SidebarProvider>

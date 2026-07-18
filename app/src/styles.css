@@ -1846,9 +1846,7 @@ text-* variant utilities. */ .btn-arc {
 
 /* === Mobile: full-screen modals === */
 @media (hover: none) and (pointer: coarse) {
-  [data-slot='thread-list'] {
-    padding-bottom: 50px !important;
-  }
+
   /* Dialog content fills the screen */
   [data-slot='dialog-content'] {
     width: 100vw !important;
@@ -1866,9 +1864,7 @@ text-* variant utilities. */ .btn-arc {
   [data-mobile-tabbar] { display: none !important; }
 }
 @media (hover: none) and (pointer: coarse) {
-  [data-slot='thread-list'] {
-    padding-bottom: 50px !important;
-  }
+
   [data-mobile-tabbar] { display: flex !important; }
   [data-slot='dialog-content'] {
     width: 100vw !important;
@@ -1884,7 +1880,7 @@ text-* variant utilities. */ .btn-arc {
   [data-slot="statusbar"] { display: none !important; }
   /* Composer sits above tab bar */
   [data-slot='composer-root'] {
-    bottom: calc(max(env(safe-area-inset-bottom, 0px), 6px) + 2.75rem) !important;
+    bottom: calc(max(env(safe-area-inset-bottom, 0px), 6px) + 2.25rem) !important;
   }
   /* Padding so last message isn't hidden behind composer */
 

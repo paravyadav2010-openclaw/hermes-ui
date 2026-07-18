@@ -23,7 +23,7 @@ export function TabBar() {
   return (
     <nav
       data-mobile-tabbar
-      className="flex h-12 shrink-0 items-center justify-around border-t border-(--ui-stroke-tertiary) bg-(--dt-background) px-2 pb-[env(safe-area-inset-bottom,0px)]"
+      className="flex h-20 shrink-0 items-center justify-around border-t border-(--ui-stroke-tertiary) bg-(--dt-background) px-2 pb-[max(env(safe-area-inset-bottom,0px),8px)] pt-3"
     >
       {TABS.map(tab => {
         const isActive = activeTab === tab.id

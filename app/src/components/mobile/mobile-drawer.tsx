@@ -39,7 +39,7 @@ export function MobileDrawer({ id, title, children }: MobileDrawerProps) {
       />
       <div
         ref={overlayRef}
-        style={{ bottom: 'calc(3rem + env(safe-area-inset-bottom, 0px))' }}
+        style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
         className={cn(
           'fixed top-0 left-0 z-50 flex w-full max-w-sm flex-col bg-(--dt-background) shadow-2xl transition-transform duration-300 ease-out',
           open ? 'translate-x-0' : '-translate-x-full'

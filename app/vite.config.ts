@@ -2,6 +2,7 @@ import { defineConfig, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 import { VitePWA } from 'vite-plugin-pwa'
+import { hermesMobilePatches } from './vite-plugin-mobile-patches.mjs'
 import { createProxyServer, type ProxyServer } from 'http-proxy-3'
 import crypto from 'node:crypto'
 import fs from 'fs'
@@ -341,7 +342,8 @@ export default defineConfig({
         // serve stale assets while iterating.
         enabled: false
       }
-    })
+    }),
+    hermesMobilePatches()
   ],
   css: {
     // Pin an explicit (empty) PostCSS config so an unrelated postcss/tailwind

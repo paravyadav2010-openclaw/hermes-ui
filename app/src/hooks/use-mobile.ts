@@ -1,8 +1,20 @@
-import { SIDEBAR_COLLAPSE_MEDIA_QUERY } from '@/app/layout-constants'
+import { useEffect, useState } from 'react'
 
-import { useMediaQuery } from './use-media-query'
+const QUERY = '(hover: none) and (pointer: coarse)'
 
-// Mobile-intent flag. Shares the single responsive breakpoint with the shell's
-// sidebar collapse (SIDEBAR_COLLAPSE_BREAKPOINT_PX) so "the rails collapsed" and
-// "we're on a phone" can never disagree by a pixel.
-export const useIsMobile = () => useMediaQuery(SIDEBAR_COLLAPSE_MEDIA_QUERY)
+export function useMobile(): boolean {
+  const [mobile, setMobile] = useState(
+    typeof window !== 'undefined' && window.matchMedia(QUERY).matches
+  )
+
+  useEffect(() => {
+    const mql = window.matchMedia(QUERY)
+    const handler = () => setMobile(mql.matches)
+    mql.addEventListener('change', handler)
+    return () => mql.removeEventListener('change', handler)
+  }, [])
+
+  return mobile
+}
+
+export const useIsMobile = useMobile

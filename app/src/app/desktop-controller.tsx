@@ -128,6 +128,10 @@ import type { StatusbarItem } from './shell/statusbar-controls'
 import type { TitlebarTool } from './shell/titlebar-controls'
 import { useGroupRegistry } from './shell/use-group-registry'
 import { UpdatesOverlay } from './updates-overlay'
+import { MobileLayout } from '@/components/mobile/mobile-layout'
+import { MoreMenuContent } from '@/components/mobile/more-menu'
+import { useMobile } from '@/hooks/use-mobile'
+import './ensure-mobile-bundle'
 
 const AgentsView = lazy(async () => ({ default: (await import('./agents')).AgentsView }))
 const ArtifactsView = lazy(async () => ({ default: (await import('./artifacts')).ArtifactsView }))
@@ -1306,6 +1310,72 @@ export function DesktopController() {
       </div>
     </Pane>
   )
+
+  const isMobile = useMobile()
+
+  if (isMobile) {
+    return (
+      <MobileLayout
+        sidebar={sidebar}
+        fileBrowser={
+          <RightSidebarPane
+            key={currentCwd || 'no-cwd'}
+            onActivateFile={path => composer.insertContextPathInlineRef(path)}
+            onActivateFolder={path => composer.insertContextPathInlineRef(path, true)}
+          />
+        }
+        preview={chatOpen ? (
+          <ChatPreviewRail onRestartServer={restartPreviewServer} setTitlebarToolGroup={setTitlebarToolGroup} />
+        ) : null}
+        review={<ReviewPane key={currentCwd || 'no-cwd'} />}
+        terminal={
+          <div className="relative flex h-full min-h-0 min-w-0 flex-col overflow-hidden bg-(--ui-editor-surface-background)">
+            <TerminalPaneChrome />
+          </div>
+        }
+        moreMenu={<MoreMenuContent onOpenSettings={openSettings} />}
+      >
+        <AppShell
+          leftStatusbarItems={leftStatusbarItems}
+          leftTitlebarTools={titlebarToolGroups.flat.left}
+          mainOverlays={mainOverlays}
+          onOpenSettings={openSettings}
+          overlays={overlays}
+          previewPaneOpen={chatOpen && Boolean(previewTarget || filePreviewTarget)}
+          statusbarItems={statusbarItems}
+          terminalPaneOpen={terminalSidebarOpen}
+          titlebarTools={titlebarToolGroups.flat.right}
+        >
+          <PaneMain>
+            <Routes>
+              <Route element={chatView} index />
+              <Route element={chatView} path=":sessionId" />
+              <Route
+                element={<Suspense fallback={null}><SkillsView setStatusbarItemGroup={setStatusbarItemGroup} /></Suspense>}
+                path="skills"
+              />
+              <Route
+                element={<Suspense fallback={null}><MessagingView setStatusbarItemGroup={setStatusbarItemGroup} /></Suspense>}
+                path="messaging"
+              />
+              <Route
+                element={<Suspense fallback={null}><ArtifactsView setStatusbarItemGroup={setStatusbarItemGroup} /></Suspense>}
+                path="artifacts"
+              />
+              <Route element={null} path="cron" />
+              <Route element={null} path="profiles" />
+              <Route element={null} path="settings" />
+              <Route element={null} path="command-center" />
+              <Route element={null} path="agents" />
+              <Route element={<Navigate replace to={NEW_CHAT_ROUTE} />} path="new" />
+              <Route element={<LegacySessionRedirect />} path="sessions/:sessionId" />
+              <Route element={<Navigate replace to={NEW_CHAT_ROUTE} />} path="*" />
+            </Routes>
+          </PaneMain>
+        </AppShell>
+      </MobileLayout>
+    )
+  }
 
   return (
     <AppShell

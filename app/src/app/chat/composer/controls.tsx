@@ -3,6 +3,7 @@ import { Codicon } from '@/components/ui/codicon'
 import { KbdCombo } from '@/components/ui/kbd'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
+import { useMobile } from '@/hooks/use-mobile'
 import { triggerHaptic } from '@/lib/haptics'
 import { AudioLines, iconSize, Layers3, Loader2, Square, SteeringWheel, Volume2, VolumeX } from '@/lib/icons'
 import { formatCombo } from '@/lib/keybinds/combo'
@@ -11,6 +12,7 @@ import { cn } from '@/lib/utils'
 import type { ConversationStatus } from './hooks/use-voice-conversation'
 import { EffortPill } from './effort-pill'
 import { ModelPill } from './model-pill'
+import { ProfilePill } from './profile-pill'
 import type { ChatBarState, VoiceStatus } from './types'
 
 export const ICON_BTN = 'size-(--composer-control-size) shrink-0 rounded-md'
@@ -71,6 +73,7 @@ export function ComposerControls({
   onToggleAutoSpeak: () => void
 }) {
   const { t } = useI18n()
+  const isMobile = useMobile()
   const c = t.composer
   const steerCombo = formatCombo('mod+enter')
   const steerLabel = `${c.steer} (${steerCombo})`
@@ -90,7 +93,13 @@ export function ComposerControls({
 
   return (
     <div className="ml-auto flex shrink-0 items-center gap-(--composer-control-gap)">
-      <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
+      {isMobile && (
+        <>
+          <ProfilePill disabled={disabled} />
+          <ModelPill compact={false} disabled={disabled} model={state.model} />
+        </>
+      )}
+      {!isMobile && <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />}
       <EffortPill disabled={disabled} />
       {/* While the agent runs and the user is typing, steer takes over the mic's
           slot rather than crowding the row with an extra button. */}

@@ -9,9 +9,11 @@ interface MobileDrawerProps {
   id: string
   title: string
   children: ReactNode
+  fullWidth?: boolean
+  fab?: ReactNode
 }
 
-export function MobileDrawer({ id, title, children }: MobileDrawerProps) {
+export function MobileDrawer({ id, title, children, fullWidth = false, fab }: MobileDrawerProps) {
   const open = useStore($mobileDrawerOpen) === id
   const overlayRef = useRef<HTMLDivElement>(null)
 
@@ -39,9 +41,9 @@ export function MobileDrawer({ id, title, children }: MobileDrawerProps) {
       />
       <div
         ref={overlayRef}
-        style={{ bottom: 'calc(4rem + env(safe-area-inset-bottom, 0px))' }}
+        style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
         className={cn(
-          'fixed top-0 left-0 z-50 flex w-full max-w-sm flex-col bg-(--dt-background) shadow-2xl transition-transform duration-300 ease-out',
+          `fixed top-0 left-0 z-50 flex w-full ${fullWidth ? '' : 'max-w-sm'} flex-col bg-(--dt-background) shadow-2xl transition-transform duration-300 ease-out`,
           open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
@@ -57,8 +59,13 @@ export function MobileDrawer({ id, title, children }: MobileDrawerProps) {
           </Button>
           <h2 className="text-sm font-semibold truncate">{title}</h2>
         </header>
-        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain">
+        <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-0 py-20 relative">
           {children}
+          {fab && (
+            <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px)+0.75rem)] right-4 z-[51]">
+              {fab}
+            </div>
+          )}
         </div>
       </div>
     </>

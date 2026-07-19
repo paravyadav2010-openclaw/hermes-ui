@@ -18,6 +18,7 @@ import { Codicon } from '@/components/ui/codicon'
 import { ErrorState } from '@/components/ui/error-state'
 import { getGlobalModelOptions, type HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
+import { useIsMobile } from '@/hooks/use-mobile'
 import type { ChatMessage } from '@/lib/chat-messages'
 import {
   coalesceToolOnlyAssistants,
@@ -117,6 +118,10 @@ function ChatHeader({
 }: ChatHeaderProps) {
   const sessions = useStore($sessions)
   const pinnedSessionIds = useStore($pinnedSessionIds)
+  const isMobile = useIsMobile()
+
+  // On mobile, the desktop titlebar header is replaced by MobileLayout.
+  if (isMobile) return null
 
   const activeStoredSession =
     sessions.find(session => session.id === selectedSessionId || session._lineage_root_id === selectedSessionId) || null

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { Tip } from '@/components/ui/tooltip'
 import { matchesQuery } from '@/hooks/use-media-query'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
@@ -59,6 +60,10 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   const fileBrowserOpen = useStore($fileBrowserOpen)
   const sidebarOpen = useStore($sidebarOpen)
   const panesFlipped = useStore($panesFlipped)
+  const isMobile = useIsMobile()
+
+  // On mobile, the desktop titlebar controls are replaced by MobileLayout.
+  if (isMobile) return null
 
   const toggleHaptics = () => {
     if (!hapticsMuted) {

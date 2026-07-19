@@ -7,8 +7,9 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/compon
 import { GlyphSpinner } from '@/components/ui/glyph-spinner'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
+import { useMobile } from '@/hooks/use-mobile'
 import { ChevronDown } from '@/lib/icons'
-import { formatModelStatusLabel } from '@/lib/model-status-label'
+import { modelBaseId } from '@/lib/model-status-label'
 import { cn } from '@/lib/utils'
 import {
   $currentFastMode,
@@ -21,7 +22,7 @@ import {
 import type { ChatBarState } from './types'
 
 const PILL = cn(
-  'h-(--composer-control-size) max-w-40 shrink-0 gap-1 rounded-md px-2 text-xs font-normal',
+  'h-(--composer-control-size) max-w-24 shrink-0 gap-1 rounded-md px-2 text-xs font-normal',
   'text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground'
 )
 
@@ -45,6 +46,13 @@ export function ModelPill({
   const fastMode = useStore($currentFastMode)
   const reasoningEffort = useStore($currentReasoningEffort)
   const [open, setOpen] = useState(false)
+  const isMobile = useMobile()
+
+  // 8-char max for mobile tab bar using modelBaseId, desktop shows truncated
+  // provider-agnostic short name so it never pushes send button off-screen.
+  const displayName = currentModel.trim()
+    ? (isMobile ? modelBaseId(currentModel).slice(0, 8) : modelBaseId(currentModel))
+    : ''
 
   // The model resolves a beat after the gateway/session comes up. Rather than
   // flash a literal "No model", show a quiet loader (inherits the pill text
@@ -54,7 +62,7 @@ export function ModelPill({
   ) : (
     <>
       {currentModel.trim() ? (
-        <span className="truncate">{formatModelStatusLabel(currentModel, { fastMode, reasoningEffort })}</span>
+        <span className="truncate">{displayName || 'Model'}</span>
       ) : (
         <GlyphSpinner className="opacity-50" spinner="braille" />
       )}

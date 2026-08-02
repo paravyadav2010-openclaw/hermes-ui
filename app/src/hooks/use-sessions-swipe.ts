@@ -1,5 +1,7 @@
 import { useEffect, useRef } from 'react'
 
+import { triggerHaptic } from '@/lib/haptics'
+
 /**
  * Document-level horizontal swipe detection for the mobile sessions push.
  * Swipe RIGHT (finger left→right) on chat opens Sessions from the LEFT;
@@ -12,6 +14,7 @@ import { useEffect, useRef } from 'react'
  * - 20px deadzone before deciding direction; vertical movement aborts
  * - 60px horizontal threshold to fire
  * - callbacks held in a ref so the effect never re-subscribes
+ * - fires a haptic on commit (user-requested 2026-08-03)
  */
 export function useSessionsSwipe(
   open: boolean,
@@ -57,11 +60,13 @@ export function useSessionsSwipe(
         // Swipe right (finger left→right) on chat → push Sessions in from the LEFT
         fired = true
         start = null
+        triggerHaptic('selection')
         s.onOpen()
       } else if (dx < -60 && s.open) {
         // Swipe left on Sessions → pop back to chat
         fired = true
         start = null
+        triggerHaptic('selection')
         s.onClose()
       }
     }

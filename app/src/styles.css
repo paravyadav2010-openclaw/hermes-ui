@@ -1958,11 +1958,13 @@ text-* variant utilities. */ .btn-arc {
   }
   /* Jump-to-bottom arrow: composer is fixed (overlays the thread), so the
      button's default in-flow bottom calc lands behind it. Anchor it above
-     the composer stack (same clearance math as the thread). */
+     the composer ROOT (surface + floating pills, measured by
+     use-keyboard-inset → --composer-stack-height). */
   .thread-jump-button {
     bottom: calc(
       max(env(safe-area-inset-bottom, 0px), 0px) + 0.875rem +
-      var(--composer-measured-height) + var(--status-stack-measured-height) + 2rem +
+      var(--composer-stack-height, var(--composer-measured-height)) +
+      var(--status-stack-measured-height) + 1rem +
       var(--keyboard-inset, 0px)
     ) !important;
     transition: bottom 320ms cubic-bezier(0.32, 0.72, 0, 1) !important;

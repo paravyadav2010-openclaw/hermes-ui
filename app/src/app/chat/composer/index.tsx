@@ -26,6 +26,7 @@ import { type QueueEditState, slashArgStage } from './composer-utils'
 import { ContextMenu } from './context-menu'
 import { ComposerControls } from './controls'
 import { EffortPill } from './effort-pill'
+import { ContextRing } from '@/components/mobile/context-ring'
 import { COMPOSER_DROP_ACTIVE_CLASS, COMPOSER_DROP_FADE_CLASS } from './drop-affordance'
 import { markActiveComposer } from './focus'
 import { HelpHint } from './help-hint'
@@ -1016,6 +1017,7 @@ export function ChatBar({
             <ProfilePill disabled={disabled} />
             <ModelPill compact={false} disabled={disabled} model={state.model} />
             <EffortPill disabled={disabled} />
+            <ContextRing />
           </div>
         </ComposerPrimitive.Root>
       </ComposerPrimitive.Unstable_TriggerPopoverRoot>

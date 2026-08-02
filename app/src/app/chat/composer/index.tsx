@@ -1019,7 +1019,10 @@ export function ChatBar({
             <ModelPill compact={false} disabled={disabled} model={state.model} />
             <EffortPill disabled={disabled} />
             <span className="absolute -right-1 top-1/2 -translate-y-1/2">
-              <ContextRing sessionId={sessionId ?? null} />
+              <ContextRing
+                onCompress={onSubmit ? () => { void onSubmit('/compress') } : undefined}
+                sessionId={sessionId ?? null}
+              />
             </span>
           </div>
         </ComposerPrimitive.Root>

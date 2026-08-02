@@ -5,7 +5,9 @@ import { createPortal } from 'react-dom'
 import { ContextUsageBar } from '@/app/shell/context-usage-panel'
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
 import { useI18n } from '@/i18n'
+import { triggerHaptic } from '@/lib/haptics'
 import { compactNumber } from '@/lib/format'
+import { Codicon } from '@/components/ui/codicon'
 import { $currentUsage } from '@/store/session'
 import type { ContextBreakdown } from '@/types/hermes'
 
@@ -36,7 +38,7 @@ function ringColor(pct: number): string {
   return `hsl(${hue} 70% 50%)`
 }
 
-export function ContextRing({ sessionId }: { sessionId: string | null }) {
+export function ContextRing({ sessionId, onCompress }: { sessionId: string | null; onCompress?: () => void }) {
   const { t } = useI18n()
   const copy = t.shell.statusbar.contextUsagePanel
   const usage = useStore($currentUsage)
@@ -139,6 +141,21 @@ export function ContextRing({ sessionId }: { sessionId: string | null }) {
             {loading && <p className="mt-2 text-[0.6875rem] text-muted-foreground">{copy.loading}</p>}
             {!loading && !categories.length && (
               <p className="mt-2 text-[0.6875rem] text-muted-foreground">{copy.empty}</p>
+            )}
+
+            {onCompress && (
+              <button
+                className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-lg border border-border/65 bg-(--chrome-action-hover)/60 py-2 text-xs font-medium text-foreground tap-highlight-transparent active:scale-[0.98] transition-transform"
+                onClick={() => {
+                  triggerHaptic('submit')
+                  setOpen(false)
+                  onCompress()
+                }}
+                type="button"
+              >
+                <Codicon name="fold" size="0.875rem" />
+                Compress context
+              </button>
             )}
           </div>
         </>,

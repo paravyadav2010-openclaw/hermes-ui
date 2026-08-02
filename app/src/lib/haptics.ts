@@ -100,8 +100,56 @@ export function registerHapticTrigger(trigger: HapticTrigger | null) {
   registeredTrigger = trigger
 }
 
+/** Native Capacitor Haptics plugin (Taptic Engine). The wrapper registers
+ *  HapticsPlugin natively; web-haptics only synthesizes an AudioContext buzz
+ *  which is inaudible/imperceptible on iOS — real vibration needs this path. */
+interface CapHaptics {
+  impact?: (opts: { style: 'LIGHT' | 'MEDIUM' | 'HEAVY' }) => Promise<void>
+  notification?: (opts: { type: 'SUCCESS' | 'WARNING' | 'ERROR' }) => Promise<void>
+  selectionStart?: () => Promise<void>
+  selectionChanged?: () => Promise<void>
+  selectionEnd?: () => Promise<void>
+}
+
+function capHaptics(): CapHaptics | null {
+  const plug = (window as unknown as { Capacitor?: { Plugins?: { Haptics?: CapHaptics } } })
+    .Capacitor?.Plugins?.Haptics
+  return plug?.impact ? plug : null
+}
+
+const HAPTIC_STYLE: Record<string, 'LIGHT' | 'MEDIUM' | 'HEAVY'> = {
+  cancel: 'MEDIUM',
+  close: 'LIGHT',
+  crisp: 'MEDIUM',
+  error: 'HEAVY',
+  open: 'LIGHT',
+  selection: 'LIGHT',
+  streamDone: 'MEDIUM',
+  streamStart: 'LIGHT',
+  submit: 'MEDIUM',
+  success: 'MEDIUM',
+  tap: 'LIGHT',
+  warning: 'MEDIUM',
+}
+
+function fireNativeHaptic(intent: HapticIntent, plug: CapHaptics) {
+  if (intent === 'success' || intent === 'streamDone') {
+    void plug.notification?.({ type: 'SUCCESS' })
+    return
+  }
+  if (intent === 'error') {
+    void plug.notification?.({ type: 'ERROR' })
+    return
+  }
+  if (intent === 'warning') {
+    void plug.notification?.({ type: 'WARNING' })
+    return
+  }
+  void plug.impact?.({ style: HAPTIC_STYLE[intent] ?? 'LIGHT' })
+}
+
 export function triggerHaptic(intent: HapticIntent = 'selection') {
-  if ($hapticsMuted.get() || !registeredTrigger) {
+  if ($hapticsMuted.get()) {
     return
   }
 
@@ -122,6 +170,18 @@ export function triggerHaptic(intent: HapticIntent = 'selection') {
   }
 
   recentFires.push(now)
+
+  // Native Taptic Engine first (Capacitor wrapper); web-haptics falls back
+  // for desktop. The pattern-based config below is the web path.
+  const native = capHaptics()
+  if (native) {
+    fireNativeHaptic(intent, native)
+    return
+  }
+
+  if (!registeredTrigger) {
+    return
+  }
 
   const config = HAPTIC_INTENTS[intent]
 

@@ -1920,11 +1920,13 @@ text-* variant utilities. */ .btn-arc {
     --tw-translate-x: 0 !important;
     --tw-translate-y: 0 !important;
     /* Tab bar is gone — composer sits low, just above the safe area. When the
-       keyboard opens, --keyboard-inset (visualViewport) lifts it smoothly. */
+       keyboard opens, --keyboard-inset (keyboardWillShow / visualViewport)
+       lifts it. 200ms ease-out finishes BEFORE iOS's ~250ms keyboard
+       animation, so the composer never hides behind the keyboard. */
     bottom: calc(
       max(env(safe-area-inset-bottom, 0px), 0px) + 0.875rem + var(--keyboard-inset, 0px)
     ) !important;
-    transition: bottom 320ms cubic-bezier(0.32, 0.72, 0, 1) !important;
+    transition: bottom 200ms cubic-bezier(0.25, 0.1, 0.25, 1) !important;
     z-index: 20 !important;
   }
   [data-slot='composer-surface'] {
@@ -1961,13 +1963,17 @@ text-* variant utilities. */ .btn-arc {
      the composer ROOT (surface + floating pills, measured by
      use-keyboard-inset → --composer-stack-height). */
   .thread-jump-button {
+    /* 44px touch target (Apple HIG minimum) — was 2rem via size-8. */
+    width: 2.75rem !important;
+    height: 2.75rem !important;
     bottom: calc(
       max(env(safe-area-inset-bottom, 0px), 0px) + 0.875rem +
       var(--composer-stack-height, var(--composer-measured-height)) +
-      var(--status-stack-measured-height) + 1rem +
-      var(--keyboard-inset, 0px)
+      var(--keyboard-inset, 0px) + 0.75rem
     ) !important;
-    transition: bottom 320ms cubic-bezier(0.32, 0.72, 0, 1) !important;
+  }
+  .thread-jump-button .codicon {
+    font-size: 1.25rem !important;
   }
 
 }

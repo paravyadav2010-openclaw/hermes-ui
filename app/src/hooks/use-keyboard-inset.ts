@@ -36,7 +36,9 @@ export function useKeyboardInset(): void {
 
     if (cap?.addListener) {
       void cap.addListener('keyboardWillShow', info => {
-        setInset(Math.max(0, info.keyboardHeight ?? 0))
+        // +12px buffer: iOS keyboardHeight can under-report vs the visual
+        // keyboard (home-indicator area); the composer must never tuck under.
+        setInset(Math.max(0, (info.keyboardHeight ?? 0) + 12))
       })
       void cap.addListener('keyboardWillHide', () => clearInset())
     }
@@ -47,7 +49,6 @@ export function useKeyboardInset(): void {
       if (!vv) return
       setInset(Math.max(0, window.innerHeight - vv.height))
     }
-
     // 3) Composer stack height — measured, so the jump arrow clears the pills.
     function measureComposer() {
       const el = document.querySelector<HTMLElement>('[data-slot="composer-root"]')

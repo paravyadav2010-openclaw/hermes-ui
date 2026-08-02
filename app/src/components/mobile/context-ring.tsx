@@ -27,9 +27,9 @@ import type { ContextBreakdown } from '@/types/hermes'
  * window fills. SVG is wrapped in a pointer-events:none span so taps reach
  * the button on iOS.
  */
-const RING_R = 9.5
+const RING_R = 12
 const RING_CIRC = 2 * Math.PI * RING_R
-const RING_SIZE = 26
+const RING_SIZE = 32
 
 function ringColor(pct: number): string {
   // Continuous gradient: green (hue 120) → yellow (60) → red (0) as the
@@ -76,7 +76,7 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
     <span className="relative inline-flex">
       <button
         aria-label="Context usage"
-        className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full p-0 tap-highlight-transparent"
+        className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full p-0 tap-highlight-transparent"
         onClick={toggle}
         type="button"
       >
@@ -109,7 +109,7 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
             />
           </svg>
         </span>
-        <span className="pointer-events-none absolute text-[7px] font-bold leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{pct}</span>
+        <span className="pointer-events-none absolute text-[8px] font-bold leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{pct}</span>
       </button>
 
       {open && createPortal(

@@ -27,6 +27,7 @@ import { ContextMenu } from './context-menu'
 import { ComposerControls } from './controls'
 import { EffortPill } from './effort-pill'
 import { ContextRing } from '@/components/mobile/context-ring'
+import { GatewayStatusRing } from '@/components/mobile/gateway-status-ring'
 import { COMPOSER_DROP_ACTIVE_CLASS, COMPOSER_DROP_FADE_CLASS } from './drop-affordance'
 import { markActiveComposer } from './focus'
 import { HelpHint } from './help-hint'
@@ -1015,6 +1016,9 @@ export function ChatBar({
               height (thread clearance) accounts for them automatically. The
               context ring pins to the RIGHT edge, beside the effort pill. */}
           <div className="relative mt-2 flex items-center justify-center gap-2">
+            <span className="absolute -left-1 top-1/2 -translate-y-1/2">
+              <GatewayStatusRing />
+            </span>
             <ProfilePill disabled={disabled} />
             <ModelPill compact={false} disabled={disabled} model={state.model} />
             <EffortPill disabled={disabled} />

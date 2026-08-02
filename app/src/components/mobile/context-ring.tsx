@@ -91,7 +91,7 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
               fill="none"
               r={RING_R}
               stroke="var(--ui-stroke-tertiary)"
-              strokeOpacity={0.45}
+              strokeOpacity={0.75}
               strokeWidth={2.5}
             />
             <circle

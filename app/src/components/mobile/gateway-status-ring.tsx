@@ -23,9 +23,11 @@ const RING_R = 12
 const RING_CIRC = 2 * Math.PI * RING_R
 const RING_SIZE = 32
 
-function stateArc(state: string): { color: string; pct: number } {
-  if (state === 'open') return { color: '#22c55e', pct: 100 }
-  if (state === 'connecting' || state === 'reconnecting') return { color: '#f59e0b', pct: 75 }
+function stateArc(state: string, inferenceReady: boolean): { color: string; pct: number } {
+  // Fully healthy: green full arc + "OK". Any warning (connecting, closed,
+  // error, or inference not ready) → "!" with amber/red per severity.
+  if (state === 'open' && inferenceReady) return { color: '#22c55e', pct: 100 }
+  if (state === 'open' || state === 'connecting' || state === 'reconnecting') return { color: '#f59e0b', pct: 75 }
   return { color: '#ef4444', pct: 50 }
 }
 
@@ -35,8 +37,11 @@ export function GatewayStatusRing() {
   const { inferenceStatus, statusSnapshot } = useStatusSnapshot(gatewayState, requestGateway)
   const [open, setOpen] = useState(false)
 
-  const { color, pct } = stateArc(gatewayState)
+  const inferenceReady = gatewayState === 'open' && inferenceStatus?.ready !== false
+  const { color, pct } = stateArc(gatewayState, inferenceReady)
   const fillOffset = RING_CIRC * (1 - pct / 100)
+  const healthy = gatewayState === 'open' && inferenceReady
+  const label = healthy ? 'OK' : '!'
 
   return (
     <span className="relative inline-flex">
@@ -75,6 +80,9 @@ export function GatewayStatusRing() {
               transform={`rotate(-90 ${RING_SIZE / 2} ${RING_SIZE / 2})`}
             />
           </svg>
+        </span>
+        <span className="pointer-events-none absolute text-[9px] font-bold leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+          {label}
         </span>
       </button>
 

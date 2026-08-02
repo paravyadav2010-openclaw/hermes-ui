@@ -126,6 +126,7 @@ export function ComposerControls({
             aria-label={busy ? (busyAction === 'queue' ? c.queueMessage : c.stop) : c.send}
             className={PRIMARY_ICON_BTN}
             disabled={disabled || !canSubmit}
+            onClick={() => triggerHaptic('submit')}
             type="submit"
           >
             {busy ? (

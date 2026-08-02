@@ -15,6 +15,7 @@ import {
 import { Kbd } from '@/components/ui/kbd'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
+import { triggerHaptic } from '@/lib/haptics'
 import { Clipboard, FileText, FolderOpen, type IconComponent, ImageIcon, Link, MessageSquareText } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 
@@ -52,6 +53,7 @@ export function ContextMenu({
                 'data-[state=open]:bg-(--chrome-action-hover) data-[state=open]:text-foreground'
               )}
               disabled={!state.tools.enabled}
+              onClick={() => triggerHaptic('open')}
               size="icon"
               type="button"
               variant="ghost"
@@ -154,6 +156,7 @@ export function ContextMenuItem({ children, disabled, icon: Icon, onSelect }: Co
       className="text-[length:var(--conversation-tool-font-size)] focus:bg-(--ui-bg-tertiary)"
       disabled={disabled}
       onSelect={onSelect}
+      onSelectCapture={() => triggerHaptic('selection')}
     >
       <Icon />
       <span>{children}</span>

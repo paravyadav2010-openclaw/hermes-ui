@@ -278,7 +278,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
       >
         {renderEmpty ? (
           <div
-            className="mx-auto grid h-full w-full max-w-(--composer-width) grid-rows-[minmax(0,1fr)_auto] min-w-0 gap-(--conversation-turn-gap) px-6 py-8"
+            className="mx-auto grid h-full w-full max-w-(--composer-width) place-items-center min-w-0 px-6 py-8"
             data-slot="aui_thread-content"
           >
             {emptyPlaceholder}

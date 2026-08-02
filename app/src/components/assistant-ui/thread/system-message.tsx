@@ -28,7 +28,7 @@ export const SystemMessage: FC = () => {
         <Codicon className="text-muted-foreground/55" name="compass" size="0.75rem" />
         <span className="text-muted-foreground/55">steered</span>
         <span className="text-muted-foreground/35">·</span>
-        <span className="whitespace-pre-wrap">{steerNote.groups.text.trim()}</span>
+        <span className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]">{steerNote.groups.text.trim()}</span>
       </MessagePrimitive.Root>
     )
   }
@@ -51,13 +51,13 @@ export const SystemMessage: FC = () => {
         data-role="system"
         data-slot="aui_system-message-root"
       >
-        <span className="font-mono text-muted-foreground/55">{slashStatus.groups.command}</span>
+        <span className="min-w-0 font-mono text-muted-foreground/55 [overflow-wrap:anywhere]">{slashStatus.groups.command}</span>
         {multiline ? (
-          <LinkifiedText className="mt-0.5 block whitespace-pre-wrap" explicitOnly pretty={false} text={output} />
+          <LinkifiedText className="mt-0.5 block whitespace-pre-wrap [overflow-wrap:anywhere]" explicitOnly pretty={false} text={output} />
         ) : (
           <>
             <span className="mx-1.5 text-muted-foreground/35">·</span>
-            <LinkifiedText className="whitespace-pre-wrap" explicitOnly pretty={false} text={output} />
+            <LinkifiedText className="min-w-0 whitespace-pre-wrap [overflow-wrap:anywhere]" explicitOnly pretty={false} text={output} />
           </>
         )}
       </MessagePrimitive.Root>
@@ -75,7 +75,7 @@ export const SystemMessage: FC = () => {
       data-role="system"
       data-slot="aui_system-message-root"
     >
-      <LinkifiedText className="whitespace-pre-wrap" explicitOnly pretty={false} text={text} />
+      <LinkifiedText className="whitespace-pre-wrap [overflow-wrap:anywhere]" explicitOnly pretty={false} text={text} />
     </MessagePrimitive.Root>
   )
 }

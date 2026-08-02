@@ -1,20 +1,28 @@
 import { useStore } from '@nanostores/react'
 import { useState } from 'react'
 
-import { cn } from '@/lib/utils'
+import { ContextUsageBar } from '@/app/shell/context-usage-panel'
+import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
+import { useI18n } from '@/i18n'
 import { compactNumber } from '@/lib/format'
-import { modelBaseId } from '@/lib/model-status-label'
-import { $currentModel, $currentUsage } from '@/store/session'
+import { $currentUsage } from '@/store/session'
+import type { ContextBreakdown } from '@/types/hermes'
 
 /**
  * The PWA-style context ring — circular SVG showing context-window usage %.
- * Replaces the bottom status bar; sits in the floating pills row, right of
- * the effort pill, just below the composer's centre button. Compact: 26px
- * visual (matches the 24px pill height), 30px hit area for touch.
+ * Replaces the bottom context bar; floats at the RIGHT edge of the composer's
+ * pill row, beside the effort pill. The ring itself has NO background —
+ * just the bare stroke circle floating over the UI.
  *
- * Tap → detail popover with the SAME information the bar showed (model, used,
- * limit, usage %). Color tiers: blue <70%, orange 70–90%, red >90%. SVG is
- * wrapped in a pointer-events:none span so taps reach the button on iOS.
+ * Tap → the same information the bottom context bar showed: Context Usage,
+ * used/limit tokens, % full, the segmented usage bar and the full category
+ * breakdown (system prompt, tool definitions, rules, skills, subagent
+ * definitions, memory, conversation…), fetched live from the gateway via
+ * `session.context_breakdown`.
+ *
+ * Color: continuous gradient green→yellow→red (HSL hue 120→0) as the context
+ * window fills. SVG is wrapped in a pointer-events:none span so taps reach
+ * the button on iOS.
  */
 const RING_R = 9.5
 const RING_CIRC = 2 * Math.PI * RING_R
@@ -27,29 +35,46 @@ function ringColor(pct: number): string {
   return `hsl(${hue} 70% 50%)`
 }
 
-function fmtTokens(n: number): string {
-  return compactNumber(Math.max(0, Math.round(n)))
-}
-
-export function ContextRing() {
-  const currentModel = useStore($currentModel)
+export function ContextRing({ sessionId }: { sessionId: string | null }) {
+  const { t } = useI18n()
+  const copy = t.shell.statusbar.contextUsagePanel
   const usage = useStore($currentUsage)
+  const { requestGateway } = useGatewayRequest()
   const [open, setOpen] = useState(false)
+  const [breakdown, setBreakdown] = useState<ContextBreakdown | null>(null)
+  const [loading, setLoading] = useState(false)
 
-  const used = usage.context_used ?? usage.total ?? 0
-  const limit = usage.context_max ?? 0
-  const pct = limit > 0 ? Math.min(100, Math.max(0, Math.round((used / limit) * 100))) : 0
+  const used = breakdown?.context_used ?? usage.context_used ?? usage.total ?? 0
+  const limit = breakdown?.context_max ?? usage.context_max ?? 0
+  const pct = limit > 0 ? Math.min(100, Math.max(0, Math.round(breakdown?.context_percent ?? ((used / limit) * 100)))) : 0
   const color = ringColor(pct)
   const fillOffset = RING_CIRC * (1 - pct / 100)
+
+  const toggle = () => {
+    const next = !open
+    setOpen(next)
+
+    if (next && !breakdown && !loading && sessionId) {
+      setLoading(true)
+      void requestGateway<ContextBreakdown>('session.context_breakdown', { session_id: sessionId })
+        .then(data => setBreakdown(data))
+        .catch(() => setBreakdown(null))
+        .finally(() => setLoading(false))
+    }
+  }
+
+  const categories = (breakdown?.categories ?? []).map(category => ({
+    ...category,
+    label: copy.categories[category.id as keyof typeof copy.categories] ?? category.label
+  }))
+  const segmentTotal = categories.reduce((sum, category) => sum + category.tokens, 0) || used || 1
 
   return (
     <span className="relative inline-flex">
       <button
         aria-label="Context usage"
-        className={cn(
-          'flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full border border-border/65 p-0 backdrop-blur-[0.75rem] bg-(--chrome-action-hover)/70 tap-highlight-transparent'
-        )}
-        onClick={() => setOpen(o => !o)}
+        className="flex h-[30px] w-[30px] cursor-pointer items-center justify-center rounded-full p-0 tap-highlight-transparent"
+        onClick={toggle}
         type="button"
       >
         <span className="pointer-events-none inline-flex">
@@ -77,7 +102,7 @@ export function ContextRing() {
             />
           </svg>
         </span>
-        <span className="pointer-events-none absolute text-[7px] font-bold leading-none text-white">{pct}</span>
+        <span className="pointer-events-none absolute text-[7px] font-bold leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{pct}</span>
       </button>
 
       {open && (
@@ -89,24 +114,35 @@ export function ContextRing() {
             tabIndex={-1}
             type="button"
           />
-          <div className="absolute bottom-full right-0 z-20 mb-2 w-52 rounded-xl border border-(--ui-stroke-tertiary) bg-(--dt-background) p-3 shadow-2xl">
-            <div className="flex items-center justify-between gap-2 text-[0.7rem]">
-              <span className="text-(--ui-text-tertiary)">Model</span>
-              <span className="truncate font-medium text-foreground">{modelBaseId(currentModel) || '—'}</span>
+          <div className="absolute bottom-full right-0 z-20 mb-2 w-72 rounded-xl border border-(--ui-stroke-tertiary) bg-(--dt-background) p-3 shadow-2xl">
+            <div className="flex items-baseline justify-between gap-2">
+              <p className="font-medium text-foreground">{copy.title}</p>
+              <span className="text-[0.6875rem] text-muted-foreground">
+                {copy.tokenSummary(`~${compactNumber(used)}`, compactNumber(limit))}
+              </span>
             </div>
-            <div className="my-1.5 h-px bg-(--ui-stroke-tertiary)/50" />
-            <div className="flex items-center justify-between gap-2 text-[0.7rem]">
-              <span className="text-(--ui-text-tertiary)">Used</span>
-              <span className="font-medium text-foreground">{fmtTokens(used)}</span>
+            <p className="mt-0.5 text-[0.6875rem] text-foreground">{copy.percentFull(pct)}</p>
+
+            <div className="mt-2">
+              <ContextUsageBar categories={categories} segmentTotal={segmentTotal} />
             </div>
-            <div className="flex items-center justify-between gap-2 text-[0.7rem]">
-              <span className="text-(--ui-text-tertiary)">Limit</span>
-              <span className="font-medium text-foreground">{limit > 0 ? fmtTokens(limit) : '—'}</span>
-            </div>
-            <div className="flex items-center justify-between gap-2 text-[0.7rem]">
-              <span className="text-(--ui-text-tertiary)">Usage</span>
-              <span className="font-medium" style={{ color: ringColor(pct) }}>{pct}%</span>
-            </div>
+
+            <ul className="mt-2.5 flex flex-col gap-1.5">
+              {categories.map(category => (
+                <li className="flex items-center justify-between gap-2" key={category.id}>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <span className="size-2 shrink-0 rounded-[2px]" style={{ background: category.color }} />
+                    <span className="truncate text-muted-foreground">{category.label}</span>
+                  </span>
+                  <span className="shrink-0 tabular-nums text-foreground">{compactNumber(category.tokens)}</span>
+                </li>
+              ))}
+            </ul>
+
+            {loading && <p className="mt-2 text-[0.6875rem] text-muted-foreground">{copy.loading}</p>}
+            {!loading && !categories.length && (
+              <p className="mt-2 text-[0.6875rem] text-muted-foreground">{copy.empty}</p>
+            )}
           </div>
         </>
       )}

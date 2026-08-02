@@ -1012,12 +1012,15 @@ export function ChatBar({
           </div>
           {/* Floating profile/model/effort pills — separate chips floating below
               the composer surface (9400-style). In-flow so the root's measured
-              height (thread clearance) accounts for them automatically. */}
-          <div className="mt-2 flex items-center justify-center gap-2">
+              height (thread clearance) accounts for them automatically. The
+              context ring pins to the RIGHT edge, beside the effort pill. */}
+          <div className="relative mt-2 flex items-center justify-center gap-2">
             <ProfilePill disabled={disabled} />
             <ModelPill compact={false} disabled={disabled} model={state.model} />
             <EffortPill disabled={disabled} />
-            <ContextRing />
+            <span className="absolute -right-1 top-1/2 -translate-y-1/2">
+              <ContextRing sessionId={sessionId ?? null} />
+            </span>
           </div>
         </ComposerPrimitive.Root>
       </ComposerPrimitive.Unstable_TriggerPopoverRoot>

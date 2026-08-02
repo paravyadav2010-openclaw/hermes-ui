@@ -104,7 +104,7 @@ export function ContextUsagePanel({ currentUsage, requestGateway, sessionId }: C
   )
 }
 
-function ContextUsageBar({
+export function ContextUsageBar({
   categories,
   segmentTotal
 }: {

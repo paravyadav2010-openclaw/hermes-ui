@@ -45,7 +45,8 @@ export function MobileLayout({
     return () => window.removeEventListener(PANE_TOGGLE_REVEAL_EVENT, handler)
   }, [])
 
-  // Swipe left on chat → push Sessions in; swipe right on Sessions → pop back.
+  // Swipe right (finger left→right) on chat → push Sessions in from the left;
+  // swipe left on Sessions → pop back to chat.
   useSessionsSwipe(
     sessionsOpen,
     () => openMobileDrawer('chat-sidebar'),
@@ -66,7 +67,7 @@ export function MobileLayout({
 
   return (
     <div className="flex h-dvh flex-col bg-(--dt-background) overflow-hidden">
-      {/* Chat layer — shifts left while Sessions pushes in from the right */}
+      {/* Chat layer — shifts right while Sessions pushes in from the left */}
       <div
         style={{
           transitionProperty: 'translate',
@@ -75,7 +76,7 @@ export function MobileLayout({
         }}
         className={cn(
           'flex-1 min-h-0 overflow-hidden [touch-action:pan-y]',
-          sessionsOpen ? '[translate:-25%_0]' : '[translate:0_0]'
+          sessionsOpen ? '[translate:25%_0]' : '[translate:0_0]'
         )}
       >
         {children}

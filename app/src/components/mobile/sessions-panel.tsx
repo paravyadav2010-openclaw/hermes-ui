@@ -11,8 +11,8 @@ interface SessionsPanelProps {
 }
 
 /**
- * Full-screen sessions screen that pushes in from the right (iOS-style push).
- * Slides in over the chat; the chat layer shifts left simultaneously (see
+ * Full-screen sessions screen that pushes in from the LEFT (drawer-style push).
+ * Slides in over the chat; the chat layer shifts right simultaneously (see
  * MobileLayout) so the gesture reads as a real push, not a slide-over.
  */
 export function SessionsPanel({ children, fab }: SessionsPanelProps) {
@@ -48,7 +48,7 @@ export function SessionsPanel({ children, fab }: SessionsPanelProps) {
         }}
         className={cn(
           'fixed top-0 left-0 z-50 flex h-full w-full flex-col bg-(--dt-background) shadow-2xl transition-transform will-change-transform',
-          open ? 'translate-x-0' : 'translate-x-full'
+          open ? 'translate-x-0' : '-translate-x-full'
         )}
       >
         <header className="flex h-12 shrink-0 items-center gap-2 border-b border-(--ui-stroke-tertiary) px-3">

@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react'
 
 /**
  * Document-level horizontal swipe detection for the mobile sessions push.
+ * Swipe RIGHT (finger left→right) on chat opens Sessions from the LEFT;
+ * swipe LEFT on Sessions pops back to chat.
  *
  * iOS-safe rules (see pwa-mobile-gestures skill):
  * - document-level listeners, NOT element refs (element handlers silently
@@ -51,13 +53,13 @@ export function useSessionsSwipe(
       }
 
       const s = stateRef.current
-      if (dx < -60 && !s.open) {
-        // Swipe left on chat → push Sessions in
+      if (dx > 60 && !s.open) {
+        // Swipe right (finger left→right) on chat → push Sessions in from the LEFT
         fired = true
         start = null
         s.onOpen()
-      } else if (dx > 60 && s.open) {
-        // Swipe right on Sessions → pop back to chat
+      } else if (dx < -60 && s.open) {
+        // Swipe left on Sessions → pop back to chat
         fired = true
         start = null
         s.onClose()

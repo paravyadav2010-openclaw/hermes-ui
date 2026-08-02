@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect, useRef } from 'react'
 import { useStore } from '@nanostores/react'
 import { $mobileDrawerOpen, closeMobileDrawer } from '@/store/mobile'
+import { triggerHaptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
@@ -41,7 +42,7 @@ export function MobileDrawer({ id, title, children, fullWidth = false, fab }: Mo
       />
       <div
         ref={overlayRef}
-        style={{ bottom: 'calc(5.5rem + env(safe-area-inset-bottom, 0px))' }}
+        style={{ bottom: 'env(safe-area-inset-bottom, 0px)' }}
         className={cn(
           `fixed top-0 left-0 z-50 flex w-full ${fullWidth ? '' : 'max-w-sm'} flex-col bg-(--dt-background) shadow-2xl transition-transform duration-300 ease-out`,
           open ? 'translate-x-0' : '-translate-x-full'
@@ -51,7 +52,7 @@ export function MobileDrawer({ id, title, children, fullWidth = false, fab }: Mo
           <Button
             aria-label="Back"
             className="size-8 cursor-pointer rounded-md text-(--ui-text-tertiary) hover:bg-(--ui-control-active-background) hover:text-foreground"
-            onClick={closeMobileDrawer}
+            onClick={() => { triggerHaptic('close'); closeMobileDrawer() }}
             size="icon"
             variant="ghost"
           >
@@ -62,7 +63,7 @@ export function MobileDrawer({ id, title, children, fullWidth = false, fab }: Mo
         <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain px-0 py-20 relative">
           {children}
           {fab && (
-            <div className="fixed bottom-[calc(5.5rem+env(safe-area-inset-bottom,0px)+0.75rem)] right-4 z-[51]">
+            <div className="fixed bottom-[calc(env(safe-area-inset-bottom,0px)+0.75rem)] right-4 z-[51]">
               {fab}
             </div>
           )}

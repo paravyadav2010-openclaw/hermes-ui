@@ -4,8 +4,9 @@ import { $reviewOpen } from '@/store/review'
 import { $terminalTakeover } from '@/app/right-sidebar/store'
 import { PREVIEW_PANE_ID, FILE_BROWSER_PANE_ID } from '@/store/layout'
 import { REVIEW_PANE_ID } from '@/store/review'
-import { toggleMobileSheet, openMobileDrawer } from '@/store/mobile'
+import { toggleMobileSheet, openMobileDrawer, closeMobileSheet } from '@/store/mobile'
 import { setModelPickerOpen } from '@/store/session'
+import { triggerHaptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
 
 interface MoreMenuContentProps {
@@ -19,11 +20,12 @@ export function MoreMenuContent({ onOpenSettings }: MoreMenuContentProps) {
   const terminalActive = useStore($terminalTakeover)
 
   const actions = [
-    { id: 'model', label: 'Model', icon: 'gear', action: () => setModelPickerOpen(true) },
-    { id: 'terminal', label: 'Terminal', icon: 'terminal', action: () => toggleMobileSheet('terminal-sidebar'), active: terminalActive },
-    { id: 'preview', label: 'Preview', icon: 'eye', action: () => toggleMobileSheet(PREVIEW_PANE_ID), active: previewOpen },
-    { id: 'review', label: 'Review', icon: 'wand', action: () => toggleMobileSheet(REVIEW_PANE_ID), active: reviewOpen },
-    { id: 'settings', label: 'Settings', icon: 'settings-gear', action: () => { onOpenSettings?.() } },
+    { id: 'model', label: 'Model', icon: 'gear', action: () => { triggerHaptic('selection'); setModelPickerOpen(true) } },
+    { id: 'files', label: 'Files', icon: 'file', action: () => { triggerHaptic('open'); closeMobileSheet(); openMobileDrawer(FILE_BROWSER_PANE_ID) }, active: fileBrowserOpen },
+    { id: 'terminal', label: 'Terminal', icon: 'terminal', action: () => { triggerHaptic('open'); toggleMobileSheet('terminal-sidebar') }, active: terminalActive },
+    { id: 'preview', label: 'Preview', icon: 'eye', action: () => { triggerHaptic('open'); toggleMobileSheet(PREVIEW_PANE_ID) }, active: previewOpen },
+    { id: 'review', label: 'Review', icon: 'wand', action: () => { triggerHaptic('open'); toggleMobileSheet(REVIEW_PANE_ID) }, active: reviewOpen },
+    { id: 'settings', label: 'Settings', icon: 'settings-gear', action: () => { triggerHaptic('selection'); onOpenSettings?.() } },
   ]
 
   return (

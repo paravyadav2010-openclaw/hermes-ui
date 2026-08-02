@@ -7,9 +7,11 @@ import { BottomSheet } from './bottom-sheet'
 import { PREVIEW_PANE_ID, FILE_BROWSER_PANE_ID } from '@/store/layout'
 import { REVIEW_PANE_ID } from '@/store/review'
 import { PANE_TOGGLE_REVEAL_EVENT } from '@/components/pane-shell'
-import { $mobileDrawerOpen, closeMobileDrawer, openMobileDrawer } from '@/store/mobile'
+import { $mobileDrawerOpen, closeMobileDrawer, openMobileDrawer, toggleMobileSheet } from '@/store/mobile'
 import { NEW_CHAT_ROUTE } from '@/app/routes'
 import { useSessionsSwipe } from '@/hooks/use-sessions-swipe'
+import { useKeyboardInset } from '@/hooks/use-keyboard-inset'
+import { triggerHaptic } from '@/lib/haptics'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { cn } from '@/lib/utils'
@@ -37,6 +39,10 @@ export function MobileLayout({
   const navigate = useNavigate()
   const sessionsOpen = useStore($mobileDrawerOpen) === 'chat-sidebar'
 
+  // Keyboard → --keyboard-inset so the composer/thread/jump-button push up
+  // smoothly instead of hiding behind the keyboard and popping late.
+  useKeyboardInset()
+
   useEffect(() => {
     const handler = () => {
       // Best effort pane reveal hook
@@ -57,7 +63,7 @@ export function MobileLayout({
     <Button
       aria-label="New chat"
       className="size-12 cursor-pointer rounded-full bg-indigo-500 text-white shadow-xl hover:bg-indigo-400 active:scale-95 transition-transform flex items-center justify-center"
-      onClick={() => { navigate(NEW_CHAT_ROUTE); closeMobileDrawer() }}
+      onClick={() => { triggerHaptic('open'); navigate(NEW_CHAT_ROUTE); closeMobileDrawer() }}
       size="icon"
       variant="ghost"
     >
@@ -85,6 +91,18 @@ export function MobileLayout({
       <SessionsPanel fab={newChatFab}>
         <SidebarProvider className="flex min-h-0 flex-1 flex-col" style={{ '--sidebar-width': '100%' } as React.CSSProperties}>{sidebar}</SidebarProvider>
       </SessionsPanel>
+      {/* Floating More menu trigger — top-right, hidden while Sessions covers the screen */}
+      <button
+        aria-label="More menu"
+        type="button"
+        className={cn(
+          'fixed top-[calc(env(safe-area-inset-top,0px)+0.75rem)] right-3 z-40 flex size-10 cursor-pointer items-center justify-center rounded-full border border-border/65 backdrop-blur-[0.75rem] bg-(--chrome-action-hover)/70 text-(--ui-text-secondary) shadow-lg transition-opacity tap-highlight-transparent',
+          sessionsOpen ? 'opacity-0 pointer-events-none' : 'opacity-100'
+        )}
+        onClick={() => { triggerHaptic('open'); toggleMobileSheet('more-menu') }}
+      >
+        <Codicon name="kebab-vertical" size="1.25rem" />
+      </button>
       <MobileDrawer id={FILE_BROWSER_PANE_ID} title="Files">{fileBrowser}</MobileDrawer>
       {preview && <BottomSheet id={PREVIEW_PANE_ID} title="Preview" maxHeight="85vh">{preview}</BottomSheet>}
       {review && <BottomSheet id={REVIEW_PANE_ID} title="Review" maxHeight="85vh">{review}</BottomSheet>}

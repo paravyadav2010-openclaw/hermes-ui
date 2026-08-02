@@ -176,7 +176,10 @@ export function SidebarSessionRow({
               return
             }
 
+            triggerHaptic('selection')
             onResume()
+
+            return
           }}
         >
           {reorderable ? (

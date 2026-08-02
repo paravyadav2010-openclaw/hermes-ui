@@ -1,6 +1,7 @@
 import { type ReactNode, useEffect } from 'react'
 import { useStore } from '@nanostores/react'
 import { $mobileDrawerOpen, closeMobileDrawer } from '@/store/mobile'
+import { triggerHaptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
@@ -55,7 +56,7 @@ export function SessionsPanel({ children, fab }: SessionsPanelProps) {
           <Button
             aria-label="Back"
             className="size-8 cursor-pointer rounded-md text-(--ui-text-tertiary) hover:bg-(--ui-control-active-background) hover:text-foreground"
-            onClick={closeMobileDrawer}
+            onClick={() => { triggerHaptic('close'); closeMobileDrawer() }}
             size="icon"
             variant="ghost"
           >

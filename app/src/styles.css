@@ -1919,7 +1919,12 @@ text-* variant utilities. */ .btn-arc {
     translate: 0 0 !important;
     --tw-translate-x: 0 !important;
     --tw-translate-y: 0 !important;
-    bottom: calc(max(env(safe-area-inset-bottom, 0px), 0px) + 4.85rem) !important;
+    /* Tab bar is gone — composer sits low, just above the safe area. When the
+       keyboard opens, --keyboard-inset (visualViewport) lifts it smoothly. */
+    bottom: calc(
+      max(env(safe-area-inset-bottom, 0px), 0px) + 0.875rem + var(--keyboard-inset, 0px)
+    ) !important;
+    transition: bottom 320ms cubic-bezier(0.32, 0.72, 0, 1) !important;
     z-index: 20 !important;
   }
   [data-slot='composer-surface'] {
@@ -1944,9 +1949,23 @@ text-* variant utilities. */ .btn-arc {
     grid-template-areas: 'menu input controls' !important;
     align-items: center !important;
   }
-  /* Pad thread bottom so last messages aren't hidden behind composer */
+  /* Pad thread bottom so last messages aren't hidden behind composer —
+     composer now sits low (0.875rem + safe area), surface + floating pills
+     ≈ 6.9rem, so 12rem leaves comfortable air while chatting. Keyboard
+     inset added so the last message clears the raised composer too. */
   [data-slot='aui_thread-viewport'] {
-    padding-bottom: calc(10rem + var(--composer-shell-pad-block-end, 0px)) !important;
+    padding-bottom: calc(12rem + var(--composer-shell-pad-block-end, 0px) + var(--keyboard-inset, 0px)) !important;
+  }
+  /* Jump-to-bottom arrow: composer is fixed (overlays the thread), so the
+     button's default in-flow bottom calc lands behind it. Anchor it above
+     the composer stack (same clearance math as the thread). */
+  .thread-jump-button {
+    bottom: calc(
+      max(env(safe-area-inset-bottom, 0px), 0px) + 0.875rem +
+      var(--composer-measured-height) + var(--status-stack-measured-height) + 2rem +
+      var(--keyboard-inset, 0px)
+    ) !important;
+    transition: bottom 320ms cubic-bezier(0.32, 0.72, 0, 1) !important;
   }
 
 }

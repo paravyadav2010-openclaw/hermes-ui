@@ -131,6 +131,7 @@ import { UpdatesOverlay } from './updates-overlay'
 import { MobileLayout } from '@/components/mobile/mobile-layout'
 import { MoreMenuContent } from '@/components/mobile/more-menu'
 import { useMobile } from '@/hooks/use-mobile'
+import { closeMobileDrawer } from '@/store/mobile'
 import './ensure-mobile-bundle'
 
 const AgentsView = lazy(async () => ({ default: (await import('./agents')).AgentsView }))
@@ -1056,7 +1057,12 @@ export function DesktopController() {
       }}
       onNavigate={selectSidebarItem}
       onNewSessionInWorkspace={startSessionInWorkspace}
-      onResumeSession={sessionId => navigate(sessionRoute(sessionId))}
+      onResumeSession={sessionId => {
+        // On mobile, clicking a session pops the Sessions panel back to chat
+        // (push animation) while navigating to the session.
+        closeMobileDrawer()
+        navigate(sessionRoute(sessionId))
+      }}
       onTriggerCronJob={jobId => {
         void triggerCronJob(jobId)
           .then(() => refreshCronJobs())

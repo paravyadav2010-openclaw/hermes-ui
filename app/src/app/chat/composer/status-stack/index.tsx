@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { blurComposerInput } from '@/app/chat/composer/focus'
 import { AGENTS_ROUTE } from '@/app/routes'
-import { composerDockCard } from '@/components/chat/composer-dock'
+import { composerFill, composerSurfaceGlass } from '@/components/chat/composer-dock'
 import { StatusSection } from '@/components/chat/status-section'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
@@ -231,15 +231,15 @@ export function ComposerStatusStack({ queue, sessionId }: ComposerStatusStackPro
       {/* The card paints the shared --composer-fill (rest / scrolled / focused
           all match the composer surface by construction); on scroll we only
           ghost the CONTENT — element opacity on the card would kill the blur.
-          Rounded top, square bottom; the bottom border is TRANSPARENT — the
-          composer surface's visible top border (which sits at a higher z) is the
-          single shared seam, so the two read as one fused capsule. */}
+          Floating pill: fully rounded, own hairline border, gap above the
+          composer (mb-2) so the stack reads as a separate floating pill. */}
       <div
         className={cn(
-          composerDockCard('top'),
+          composerFill,
+          composerSurfaceGlass,
           // Inset (mx-2) so the stack reads slightly narrower than the composer
-          // surface below it — the original look.
-          'mx-2 overflow-hidden rounded-b-none border-b border-b-transparent pt-0.5',
+          // surface below it — the original look. mb-2 = floating gap.
+          'mx-2 mb-2 overflow-hidden rounded-full border border-border/65 pt-0.5',
           'transition-opacity duration-200 ease-out',
           scrolledUp ? 'opacity-30 group-hover/composer:opacity-100' : 'opacity-100'
         )}

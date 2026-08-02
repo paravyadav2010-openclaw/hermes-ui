@@ -3,16 +3,12 @@ import { Codicon } from '@/components/ui/codicon'
 import { KbdCombo } from '@/components/ui/kbd'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
-import { useMobile } from '@/hooks/use-mobile'
 import { triggerHaptic } from '@/lib/haptics'
-import { AudioLines, iconSize, Layers3, Loader2, Square, SteeringWheel, Volume2, VolumeX } from '@/lib/icons'
+import { AudioLines, iconSize, Layers3, Loader2, Square, SteeringWheel } from '@/lib/icons'
 import { formatCombo } from '@/lib/keybinds/combo'
 import { cn } from '@/lib/utils'
 
 import type { ConversationStatus } from './hooks/use-voice-conversation'
-import { EffortPill } from './effort-pill'
-import { ModelPill } from './model-pill'
-import { ProfilePill } from './profile-pill'
 import type { ChatBarState, VoiceStatus } from './types'
 
 export const ICON_BTN = 'size-(--composer-control-size) shrink-0 rounded-md'
@@ -42,20 +38,17 @@ interface ConversationProps {
 }
 
 export function ComposerControls({
-  autoSpeak,
   busy,
   busyAction,
   canSteer,
   canSubmit,
-  compactModelPill = false,
   conversation,
   disabled,
   hasComposerPayload,
   state,
   voiceStatus,
   onDictate,
-  onSteer,
-  onToggleAutoSpeak
+  onSteer
 }: {
   autoSpeak: boolean
   busy: boolean
@@ -73,7 +66,6 @@ export function ComposerControls({
   onToggleAutoSpeak: () => void
 }) {
   const { t } = useI18n()
-  const isMobile = useMobile()
   const c = t.composer
   const steerCombo = formatCombo('mod+enter')
   const steerLabel = `${c.steer} (${steerCombo})`
@@ -93,14 +85,6 @@ export function ComposerControls({
 
   return (
     <div className="ml-auto flex shrink-0 items-center gap-(--composer-control-gap)">
-      {isMobile && (
-        <>
-          <ProfilePill disabled={disabled} />
-          <ModelPill compact={false} disabled={disabled} model={state.model} />
-        </>
-      )}
-      {!isMobile && <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />}
-      <EffortPill disabled={disabled} />
       {/* While the agent runs and the user is typing, steer takes over the mic's
           slot rather than crowding the row with an extra button. */}
       {canSteer ? (
@@ -120,7 +104,6 @@ export function ComposerControls({
       ) : (
         <DictationButton disabled={disabled} onToggle={onDictate} state={state.voice} status={voiceStatus} />
       )}
-      <AutoSpeakButton active={autoSpeak} disabled={disabled} onToggle={onToggleAutoSpeak} />
       {showVoicePrimary ? (
         <Tip label={c.startVoice}>
           <Button
@@ -270,39 +253,6 @@ function ConversationIndicator({
   )
 }
 
-// Pure-TTS toggle: type normally, but have every assistant reply read aloud —
-// no dictation, no full conversation loop. Filled/accent when on, mirroring the
-// muted-mic pressed state above. Driven by (and persisted to) `voice.auto_tts`.
-function AutoSpeakButton({ active, disabled, onToggle }: { active: boolean; disabled: boolean; onToggle: () => void }) {
-  const { t } = useI18n()
-  const c = t.composer
-  const label = active ? c.stopSpeakingReplies : c.speakReplies
-
-  return (
-    <Tip label={label}>
-      <Button
-        aria-label={label}
-        aria-pressed={active}
-        className={cn(
-          GHOST_ICON_BTN,
-          'p-0',
-          active && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary'
-        )}
-        disabled={disabled}
-        onClick={() => {
-          triggerHaptic(active ? 'close' : 'open')
-          onToggle()
-        }}
-        size="icon"
-        type="button"
-        variant="ghost"
-      >
-        {active ? <Volume2 className={iconSize.sm} /> : <VolumeX className={iconSize.sm} />}
-      </Button>
-    </Tip>
-  )
-}
-
 function DictationButton({
   disabled,
   state,
@@ -327,8 +277,8 @@ function DictationButton({
         aria-label={aria}
         aria-pressed={active}
         className={cn(
-          GHOST_ICON_BTN,
-          'p-0',
+          'size-(--composer-control-primary-size) shrink-0 rounded-full border border-border/65 p-0',
+          'bg-(--chrome-action-hover)/40 text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground',
           'data-[active=true]:bg-accent data-[active=true]:text-foreground',
           status === 'recording' && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
           status === 'transcribing' && 'bg-primary/10 text-primary'

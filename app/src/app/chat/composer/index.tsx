@@ -22,12 +22,15 @@ import { $autoSpeakReplies } from '@/store/voice-prefs'
 import { useTheme } from '@/themes'
 
 import { AttachmentList } from './attachments'
-import { COMPOSER_FADE_BACKGROUND, type QueueEditState, slashArgStage } from './composer-utils'
+import { type QueueEditState, slashArgStage } from './composer-utils'
 import { ContextMenu } from './context-menu'
 import { ComposerControls } from './controls'
+import { EffortPill } from './effort-pill'
 import { COMPOSER_DROP_ACTIVE_CLASS, COMPOSER_DROP_FADE_CLASS } from './drop-affordance'
 import { markActiveComposer } from './focus'
 import { HelpHint } from './help-hint'
+import { ModelPill } from './model-pill'
+import { ProfilePill } from './profile-pill'
 import { useAtCompletions } from './hooks/use-at-completions'
 import { useComposerBranch } from './hooks/use-composer-branch'
 import { useComposerDraft } from './hooks/use-composer-draft'
@@ -836,12 +839,12 @@ export function ChatBar({
       <ComposerPrimitive.Unstable_TriggerPopoverRoot>
         <ComposerPrimitive.Root
           className={cn(
-            'group/composer z-30 overflow-visible rounded-2xl',
+            'group/composer z-30 overflow-visible rounded-full',
             poppedOut
               ? // Floating: the composer (with its own border) floats with an even
                 // 5px transparent grab margin around it — drag that to move it.
                 'fixed w-[var(--composer-popout-width)] max-w-[calc(100vw-1.5rem)] bg-transparent p-[5px]'
-              : 'absolute bottom-0 left-1/2 w-[min(var(--composer-width),calc(100%-2rem))] max-w-full -translate-x-1/2 pt-2 pb-[var(--composer-shell-pad-block-end)]',
+              : 'absolute bottom-2 left-1/2 w-[min(var(--composer-width),calc(100%-2rem))] max-w-full -translate-x-1/2 pt-2 pb-[var(--composer-shell-pad-block-end)]',
             dragging && 'cursor-grabbing select-none touch-none'
           )}
           data-drag-active={dragActive ? '' : undefined}
@@ -910,12 +913,7 @@ export function ChatBar({
             }
             sessionId={statusSessionId}
           />
-          {!poppedOut && (
-            <div
-              className="pointer-events-none absolute inset-0 rounded-[inherit]"
-              style={{ background: COMPOSER_FADE_BACKGROUND }}
-            />
-          )}
+
           {/* Drag region: covers the transparent grab margin around the surface.
               The surface sits on top (z-4) so only the exposed ring receives this
               element's hover/cursor — grab cursor + a diagonal hatch (/////)
@@ -930,6 +928,9 @@ export function ChatBar({
               onDoubleClick={handleComposerToggle}
             />
           )}
+          {/* Floating profile/model/effort pills — separate chips floating below
+              the composer surface (9400-style). In-flow so the root's measured
+              height (thread clearance) accounts for them automatically. */}
           <div className="relative w-full rounded-[inherit]">
             <div
               className={cn(
@@ -999,13 +1000,22 @@ export function ChatBar({
                       ? 'grid-cols-[auto_1fr] gap-(--composer-row-gap) [grid-template-areas:"input_input"_"menu_controls"]'
                       : 'grid-cols-[auto_1fr_auto] items-center gap-(--composer-control-gap) [grid-template-areas:"menu_input_controls"]'
                   )}
+                  data-slot="composer-input-grid"
                 >
-                  <div className="flex translate-y-[3px] items-start self-start [grid-area:menu]">{contextMenu}</div>
+                  <div className="flex items-center self-center [grid-area:menu]">{contextMenu}</div>
                   <div className="min-w-0 [grid-area:input]">{input}</div>
                   <div className="flex items-center justify-end [grid-area:controls]">{controls}</div>
                 </div>
               </div>
             </div>
+          </div>
+          {/* Floating profile/model/effort pills — separate chips floating below
+              the composer surface (9400-style). In-flow so the root's measured
+              height (thread clearance) accounts for them automatically. */}
+          <div className="mt-2 flex items-center justify-center gap-2">
+            <ProfilePill disabled={disabled} />
+            <ModelPill compact={false} disabled={disabled} model={state.model} />
+            <EffortPill disabled={disabled} />
           </div>
         </ComposerPrimitive.Root>
       </ComposerPrimitive.Unstable_TriggerPopoverRoot>
@@ -1026,8 +1036,7 @@ export function ChatBarFallback() {
   return (
     <div
       className={cn(
-        'group/composer absolute bottom-0 left-1/2 z-30 w-[min(var(--composer-width),calc(100%-2rem))] max-w-full -translate-x-1/2 rounded-2xl pt-2 pb-[var(--composer-shell-pad-block-end)]',
-        'bg-linear-to-b from-transparent to-background/55'
+        'group/composer absolute bottom-2 left-1/2 z-30 w-[min(var(--composer-width),calc(100%-2rem))] max-w-full -translate-x-1/2 rounded-full pt-2 pb-[var(--composer-shell-pad-block-end)]'
       )}
       data-slot="composer-root"
     >

@@ -22,8 +22,8 @@ import {
 import type { ChatBarState } from './types'
 
 const PILL = cn(
-  'h-(--composer-control-size) max-w-24 shrink-0 gap-1 rounded-md px-2 text-xs font-normal',
-  'text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground'
+  'h-(--composer-control-size) max-w-24 shrink-0 gap-1 rounded-full border border-border/65 px-2 text-xs font-normal',
+  'backdrop-blur-[0.75rem] bg-(--chrome-action-hover)/70 text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground'
 )
 
 /**

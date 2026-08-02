@@ -362,13 +362,13 @@
 
     --composer-width: 48.75rem;
     --composer-control-size: 1.5rem;
-    --composer-control-primary-size: 1.625rem;
+    --composer-control-primary-size: 2.75rem;
     --composer-control-gap: 0.25rem;
     --composer-row-gap: 0.25rem;
     --composer-ring-strength: 1;
     --composer-surface-pad-x: 0.5rem;
     --composer-surface-pad-y: 0.3125rem;
-    --composer-input-min-height: 1.625rem;
+    --composer-input-min-height: 2.5rem;
     --composer-input-max-height: 9.375rem;
     --composer-input-inline-min-width: 8rem;
     --composer-fallback-height: 2.75rem;
@@ -1161,16 +1161,14 @@ text-* variant utilities. */ .btn-arc {
   opacity: 0.33;
 }
 
-[data-slot='composer-root'] > .pointer-events-none {
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    color-mix(in srgb, var(--ui-chat-surface-background) 88%, transparent)
-  ) !important;
-}
+
 
 [data-slot='composer-surface'] {
   border-color: var(--ui-stroke-secondary) !important;
+  /* Floating pill elevation (matches the 9400 PWA elev-2 recipe). */
+  box-shadow:
+    0 0.25rem 0.75rem color-mix(in srgb, #141e3c 8%, transparent),
+    0 0.125rem 0.25rem color-mix(in srgb, #141e3c 6%, transparent) !important;
 }
 
 [data-slot='composer-fade'] {
@@ -1199,11 +1197,11 @@ text-* variant utilities. */ .btn-arc {
 }
 
 [data-slot='composer-root'] {
-  --composer-fill: color-mix(in srgb, var(--dt-card) 72%, transparent);
+  --composer-fill: color-mix(in srgb, var(--dt-card) 92%, transparent);
 }
 
 [data-slot='composer-root'][data-thread-scrolled-up] {
-  --composer-fill: color-mix(in srgb, var(--dt-card) 48%, transparent);
+  --composer-fill: color-mix(in srgb, var(--dt-card) 72%, transparent);
 }
 
 /* Tool/thinking blocks now live at message-text alignment (no leading
@@ -1847,10 +1845,20 @@ text-* variant utilities. */ .btn-arc {
 /* === Mobile: full-screen modals === */
 @media (hover: none) and (pointer: coarse) {
 
+  /* The visual viewport owns mobile width. `100vw` can be wider than it on
+     Safari, which leaves a sideways page pan when a full-screen dialog opens. */
+  html,
+  body,
+  #root {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: clip;
+  }
+
   /* Dialog content fills the screen */
   [data-slot='dialog-content'] {
-    width: 100vw !important;
-    max-width: 100vw !important;
+    width: 100% !important;
+    max-width: 100% !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
     margin: 0 !important;
@@ -1867,8 +1875,8 @@ text-* variant utilities. */ .btn-arc {
 
   [data-mobile-tabbar] { display: flex !important; }
   [data-slot='dialog-content'] {
-    width: 100vw !important;
-    max-width: 100vw !important;
+    width: 100% !important;
+    max-width: 100% !important;
     height: 100dvh !important;
     max-height: 100dvh !important;
     margin: 0 !important;
@@ -1880,7 +1888,7 @@ text-* variant utilities. */ .btn-arc {
   }
   /* Override model picker's max-w-2xl on mobile */
   [data-slot='dialog-content'].gap-0 {
-    max-width: 100vw !important;
+    max-width: 100% !important;
     max-height: 100dvh !important;
   }
   /* Model picker inner scroll on mobile */
@@ -1891,21 +1899,50 @@ text-* variant utilities. */ .btn-arc {
   [data-slot='dialog-content'] [cmdk-input] {
     font-size: 16px !important;
   }
+  /* Git coding-status bar (branch/file) is a desktop feature — hide it from
+     the phone pill composer. */
+  .coding-status-bar {
+    display: none !important;
+  }
   /* Composer sits above tab bar */
   [data-slot='composer-root'] {
     position: fixed !important;
-    left: 0 !important;
-    right: 0 !important;
+    left: 1rem !important;
+    right: 1rem !important;
     width: auto !important;
+    /* Neutralise the JSX `-translate-x-1/2` centring utility. Tailwind v4
+       uses the separate `translate` property (NOT transform), so resetting
+       transform is not enough — and lightningcss folds `translate: none`
+       away, leaving the -50% shift (composer chopped off the left edge).
+       Set a real zero translate + zero the underlying custom properties:
+       both survive minification and the utility resolves to translate(0 0). */
+    translate: 0 0 !important;
+    --tw-translate-x: 0 !important;
+    --tw-translate-y: 0 !important;
     bottom: calc(max(env(safe-area-inset-bottom, 0px), 0px) + 4.85rem) !important;
     z-index: 20 !important;
   }
   [data-slot='composer-surface'] {
-    overflow: visible !important;
-    min-height: 3rem !important;
+    overflow: hidden !important;
+    /* 44px (2.75rem) primary buttons + 2 × 5px surface pad = 54px. Any less
+       crops the circular send/mic bottoms inside the pill. */
+    min-height: 3.375rem !important;
   }
   [data-slot='composer-fade'] {
-    overflow: visible !important;
+    overflow: hidden !important;
+    /* Keep the input row (+ / mic / send) vertically centered in the pill.
+       The fade is a flex column; default flex-start pins the row to the top
+       edge, which reads as "buttons at the bottom" once the coding bar is
+       hidden. Center the group so the buttons sit mid-composer. */
+    justify-content: center !important;
+  }
+  /* Phone pill: force the input, +, mic and send all onto ONE row, vertically
+     centered. The stacked grid (used under 30rem width) drops the buttons to a
+     second row — wrong for a single-line pill. */
+  [data-slot='composer-input-grid'] {
+    grid-template-columns: auto 1fr auto !important;
+    grid-template-areas: 'menu input controls' !important;
+    align-items: center !important;
   }
   /* Pad thread bottom so last messages aren't hidden behind composer */
   [data-slot='aui_thread-viewport'] {

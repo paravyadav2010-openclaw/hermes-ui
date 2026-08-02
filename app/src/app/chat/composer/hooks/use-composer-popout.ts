@@ -9,7 +9,6 @@ import {
   setComposerPopoutPosition,
   setComposerPoppedOut
 } from '@/store/composer-popout'
-import { isSecondaryWindow } from '@/store/windows'
 
 import { useComposerPopoutGestures } from './use-popout-drag'
 
@@ -25,7 +24,11 @@ interface UseComposerPopoutOptions {
  * window's composer out via the shared atom.
  */
 export function useComposerPopout({ composerRef }: UseComposerPopoutOptions) {
-  const popoutAllowed = !isSecondaryWindow()
+  // Undock/float is disabled (2026-08-02, Praveen): the composer is a fixed
+  // floating pill and must never pop out into a movable window. Everything
+  // downstream (drag gestures, dock glow, double-click toggle) is gated on
+  // this flag, so returning false here neutralises the whole pop-out engine.
+  const popoutAllowed = false
   const poppedOut = useStore($composerPoppedOut) && popoutAllowed
   const popoutPosition = useStore($composerPopoutPosition)
 

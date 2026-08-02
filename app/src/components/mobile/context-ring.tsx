@@ -79,14 +79,8 @@ export function ContextRing({ sessionId }: { sessionId: string | null }) {
       >
         <span className="pointer-events-none inline-flex">
           <svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
-            <circle
-              cx={RING_SIZE / 2}
-              cy={RING_SIZE / 2}
-              fill="none"
-              r={RING_R}
-              stroke="var(--ui-stroke-tertiary)"
-              strokeWidth={2.5}
-            />
+            {/* NO background track circle — the ring floats bare. Only the
+                colored progress arc renders (invisible at 0%, full at 100%). */}
             <circle
               cx={RING_SIZE / 2}
               cy={RING_SIZE / 2}

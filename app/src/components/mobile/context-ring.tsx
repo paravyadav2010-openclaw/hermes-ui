@@ -1,5 +1,6 @@
 import { useStore } from '@nanostores/react'
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 
 import { ContextUsageBar } from '@/app/shell/context-usage-panel'
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
@@ -99,16 +100,18 @@ export function ContextRing({ sessionId }: { sessionId: string | null }) {
         <span className="pointer-events-none absolute text-[7px] font-bold leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{pct}</span>
       </button>
 
-      {open && (
+      {open && createPortal(
         <>
           <button
             aria-hidden="true"
-            className="fixed inset-0 z-10 cursor-default"
+            className="fixed inset-0 z-[95] cursor-default"
             onClick={() => setOpen(false)}
             tabIndex={-1}
             type="button"
           />
-          <div className="absolute bottom-full right-0 z-20 mb-2 w-72 rounded-xl border border-(--ui-stroke-tertiary) bg-(--dt-background) p-3 shadow-2xl">
+          <div className="fixed right-3 z-[96] w-72 rounded-xl border border-(--ui-stroke-tertiary) bg-(--dt-background) p-3 shadow-2xl"
+            style={{ bottom: 'calc(var(--composer-stack-height, 0px) + var(--keyboard-inset, 0px) + 1.5rem)' }}
+          >
             <div className="flex items-baseline justify-between gap-2">
               <p className="font-medium text-foreground">{copy.title}</p>
               <span className="text-[0.6875rem] text-muted-foreground">
@@ -138,7 +141,8 @@ export function ContextRing({ sessionId }: { sessionId: string | null }) {
               <p className="mt-2 text-[0.6875rem] text-muted-foreground">{copy.empty}</p>
             )}
           </div>
-        </>
+        </>,
+        document.body
       )}
     </span>
   )

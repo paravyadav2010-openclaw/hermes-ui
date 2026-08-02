@@ -1842,6 +1842,46 @@ text-* variant utilities. */ .btn-arc {
   }
 }
 
+/* === Global overflow safety net ===
+   No message content may overflow horizontally, no matter the role, source,
+   or future component. Long unbroken tokens (pids, paths, URLs, hashes) must
+   wrap inside the bubble. Flex/grid children need min-width:0 to shrink
+   below content width; text needs overflow-wrap:anywhere to break anywhere.
+   pre/code keep internal scrolling instead (contained overflow — never the
+   page). */
+[data-slot='aui_thread-content'],
+[data-slot='aui_thread-viewport'],
+[data-slot='aui_turn-pair'],
+[data-role='user'],
+[data-role='assistant'],
+[data-role='system'],
+[data-slot='aui_assistant-message-root'],
+[data-slot='aui_system-message-root'] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+[data-role='user'] :is(p, li, h1, h2, h3, h4, h5, h6, td, th, blockquote, span, a, code:not(pre code), strong, em, div, ul, ol),
+[data-role='assistant'] :is(p, li, h1, h2, h3, h4, h5, h6, td, th, blockquote, span, a, code:not(pre code), strong, em, div, ul, ol),
+[data-role='system'] :is(p, li, h1, h2, h3, h4, h5, h6, td, th, blockquote, span, a, code:not(pre code), strong, em, div, ul, ol),
+[data-slot='aui_assistant-message-content'] :is(p, li, h1, h2, h3, h4, h5, h6, td, th, blockquote, span, a, code:not(pre code), strong, em, div, ul, ol) {
+  overflow-wrap: anywhere;
+  word-break: normal;
+  min-width: 0;
+  max-width: 100%;
+}
+
+/* Code blocks scroll inside their own container — never spill the page. */
+[data-role='user'] pre,
+[data-role='assistant'] pre,
+[data-role='system'] pre,
+[data-slot='aui_assistant-message-content'] pre {
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-wrap: normal;
+  white-space: pre;
+}
+
 /* === Mobile: full-screen modals === */
 @media (hover: none) and (pointer: coarse) {
 

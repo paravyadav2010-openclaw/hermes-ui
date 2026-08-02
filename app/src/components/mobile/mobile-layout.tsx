@@ -3,6 +3,7 @@ import { useStore } from '@nanostores/react'
 import { useNavigate } from 'react-router-dom'
 import { MobileDrawer } from './mobile-drawer'
 import { SessionsPanel } from './sessions-panel'
+import { StatusRingBar } from './status-ring-bar'
 import { BottomSheet } from './bottom-sheet'
 import { PREVIEW_PANE_ID, FILE_BROWSER_PANE_ID } from '@/store/layout'
 import { REVIEW_PANE_ID } from '@/store/review'
@@ -91,6 +92,8 @@ export function MobileLayout({
       <SessionsPanel fab={newChatFab}>
         <SidebarProvider className="flex min-h-0 flex-1 flex-col" style={{ '--sidebar-width': '100%' } as React.CSSProperties}>{sidebar}</SidebarProvider>
       </SessionsPanel>
+      {/* Lower status bar — context ring + model + timers (redesigned pixel bar) */}
+      <StatusRingBar />
       {/* Floating More menu trigger — top-right, hidden while Sessions covers the screen */}
       <button
         aria-label="More menu"

@@ -34,16 +34,20 @@ export function useKeyboardInset(): void {
     const cap = (window as unknown as { Capacitor?: { Plugins?: { Keyboard?: CapKeyboard } } })
       .Capacitor?.Plugins?.Keyboard
 
+    // Single source of truth: when Capacitor is available use ONLY its events
+    // (keyboardWillShow already reports the full overlay height — adding the
+    // visualViewport delta on top would double-count and lift the composer
+    // too high). visualViewport is the fallback for non-Capacitor contexts.
+    const useCap = Boolean(cap?.addListener)
+
     if (cap?.addListener) {
       void cap.addListener('keyboardWillShow', info => {
-        // +12px buffer: iOS keyboardHeight can under-report vs the visual
-        // keyboard (home-indicator area); the composer must never tuck under.
-        setInset(Math.max(0, (info.keyboardHeight ?? 0) + 12))
+        setInset(Math.max(0, info.keyboardHeight ?? 0))
       })
       void cap.addListener('keyboardWillHide', () => clearInset())
     }
 
-    // 2) visualViewport fallback (non-Capacitor)
+    // 2) visualViewport fallback (non-Capacitor only)
     const vv = window.visualViewport
     function updateVisual() {
       if (!vv) return
@@ -69,7 +73,7 @@ export function useKeyboardInset(): void {
     }, 500)
     window.setTimeout(() => window.clearInterval(mountTimer), 5000)
 
-    if (vv) {
+    if (vv && !useCap) {
       updateVisual()
       vv.addEventListener('resize', updateVisual)
       vv.addEventListener('scroll', updateVisual)
@@ -79,7 +83,7 @@ export function useKeyboardInset(): void {
     return () => {
       mo.disconnect()
       window.clearInterval(mountTimer)
-      if (vv) {
+      if (vv && !useCap) {
         vv.removeEventListener('resize', updateVisual)
         vv.removeEventListener('scroll', updateVisual)
         window.removeEventListener('resize', updateVisual)

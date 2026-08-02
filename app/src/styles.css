@@ -1922,9 +1922,11 @@ text-* variant utilities. */ .btn-arc {
     /* Tab bar is gone — composer sits low, just above the safe area. When the
        keyboard opens, --keyboard-inset (keyboardWillShow / visualViewport)
        lifts it. 200ms ease-out finishes BEFORE iOS's ~250ms keyboard
-       animation, so the composer never hides behind the keyboard. */
+       animation (and glides back down on hide). max() so the keyboard height
+       REPLACES the safe-area inset instead of adding to it — otherwise the
+       composer floats too high when the keyboard is open. */
     bottom: calc(
-      max(env(safe-area-inset-bottom, 0px), 0px) + 0.875rem + var(--keyboard-inset, 0px)
+      max(env(safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px)) + 0.875rem
     ) !important;
     transition: bottom 200ms cubic-bezier(0.25, 0.1, 0.25, 1) !important;
     z-index: 20 !important;
@@ -1967,9 +1969,9 @@ text-* variant utilities. */ .btn-arc {
     width: 2.75rem !important;
     height: 2.75rem !important;
     bottom: calc(
-      max(env(safe-area-inset-bottom, 0px), 0px) + 0.875rem +
+      max(env(safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px)) + 0.875rem +
       var(--composer-stack-height, var(--composer-measured-height)) +
-      var(--keyboard-inset, 0px) + 0.75rem
+      0.75rem
     ) !important;
   }
   .thread-jump-button .codicon {

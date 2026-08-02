@@ -82,8 +82,18 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
       >
         <span className="pointer-events-none inline-flex">
           <svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
-            {/* NO background track circle — the ring floats bare. Only the
-                colored progress arc renders (invisible at 0%, full at 100%). */}
+            {/* Empty-tube track: faint full circle so the remaining space is
+                visible when usage is low (a bare quarter arc reads as broken).
+                Deliberately muted — the colored arc is the star. */}
+            <circle
+              cx={RING_SIZE / 2}
+              cy={RING_SIZE / 2}
+              fill="none"
+              r={RING_R}
+              stroke="var(--ui-stroke-tertiary)"
+              strokeOpacity={0.45}
+              strokeWidth={2.5}
+            />
             <circle
               cx={RING_SIZE / 2}
               cy={RING_SIZE / 2}

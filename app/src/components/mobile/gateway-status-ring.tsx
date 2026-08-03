@@ -27,7 +27,6 @@ import { cn } from '@/lib/utils'
 import { ZapFilled } from '@/lib/icons'
 import {
   $backendUpdateApply,
-  $backendUpdateStatus,
   openUpdateOverlayFor
 } from '@/store/updates'
 
@@ -68,10 +67,12 @@ export function GatewayStatusRing() {
   const sessionStartedAt = useStore($sessionStartedAt)
   const turnStartedAt = useStore($turnStartedAt)
   const subagentsBySession = useStore($subagentsBySession)
-  const backendStatus = useStore($backendUpdateStatus)
   const backendApply = useStore($backendUpdateApply)
   const backendApplying = backendApply.applying || backendApply.stage === 'restart'
-  const backendVersion = backendStatus?.currentSha
+  // Same source as the desktop status bar's backend item: the status
+  // snapshot's version string (statusSnapshot?.version), not the update
+  // status object (which never carries a version field).
+  const backendVersion = statusSnapshot?.version
 
   // Same aggregation as the desktop status bar's agents item: running/failed
   // subagent counts across every session.
@@ -241,7 +242,7 @@ export function GatewayStatusRing() {
                   ) : (
                     <Hash className="size-3" />
                   )}
-                  <span>{backendApplying ? 'backend update' : `backend ${backendVersion.slice(0, 7)}`}</span>
+                  <span>{backendApplying ? 'backend update' : `backend ${String(backendVersion).slice(0, 7)}`}</span>
                 </span>
                 <Codicon name="chevron-right" size="0.625rem" className="opacity-50" />
               </button>

@@ -2044,19 +2044,24 @@ text-* variant utilities. */ .btn-arc {
   [data-slot='aui_thread-viewport'] {
     padding-bottom: calc(12rem + var(--composer-shell-pad-block-end, 0px) + var(--keyboard-inset, 0px)) !important;
     /* Bottom fade — BURNED INTO the chat surface via mask (no overlay div, so
-       it can never paint over the composer, pills, rings, or status bar —
-       those live outside the thread viewport). The fade lives ONLY in the
-       region the opaque composer box covers (composer bottom → composer top):
-       messages stay FULLY visible until they slide behind the composer —
-       no early crop above it. The composer bottom tracks the keyboard, so
-       the fade does too. */
-    --aui-composer-bottom: calc(
-      max(env(safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px)) + 0.875rem
+       it can never paint over the composer, pills, rings, or status bar).
+       The fade runs from a little ABOVE the composer's top edge down to the
+       composer's bottom: the last bit of chat above the box visibly sinks
+       into the background before the composer, and the rest fades in the
+       region the opaque box covers. --aui-fade-lift = how much the fade
+       peeks above the composer top; tracks the keyboard via composer-top. */
+    --aui-composer-top: calc(
+      max(env(safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px)) + 0.875rem +
+      var(--composer-stack-height, var(--composer-measured-height, 3.875rem))
     );
-    --aui-fade-zone: var(--composer-stack-height, var(--composer-measured-height, 3.875rem));
-    -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--aui-composer-bottom) - var(--aui-fade-zone)), transparent calc(100% - var(--aui-composer-bottom)));
-    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--aui-composer-bottom) - var(--aui-fade-zone)), transparent calc(100% - var(--aui-composer-bottom)));
-  }  /* Jump-to-bottom arrow: composer is fixed (overlays the thread), so the
+    --aui-fade-lift: 1rem;
+    /* Compact 4rem zone so the fade is visible but doesn't climb far up the
+       thread (earlier tall zones read as 'too high'). */
+    --aui-fade-zone: 4rem;
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--aui-composer-top) - var(--aui-fade-lift) - var(--aui-fade-zone)), transparent calc(100% - var(--aui-composer-top) - var(--aui-fade-lift)));
+    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--aui-composer-top) - var(--aui-fade-lift) - var(--aui-fade-zone)), transparent calc(100% - var(--aui-composer-top) - var(--aui-fade-lift)));
+  }
+  /* Jump-to-bottom arrow: composer is fixed (overlays the thread), so the
      button's default in-flow bottom calc lands behind it. Anchor it above
      the composer ROOT (surface + floating pills, measured by
      use-keyboard-inset → --composer-stack-height). */

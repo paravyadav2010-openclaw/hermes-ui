@@ -2002,6 +2002,14 @@ text-* variant utilities. */ .btn-arc {
     border-radius: 0.625rem !important;
   }
 
+  /* User messages: the sticky root paints a full-width
+     --ui-chat-surface-background band behind the rounded bubble — on the
+     phone that reads as an extra rectangle on top of the message. Kill the
+     band; the bubble itself is the only visible shape. */
+  [data-slot='aui_user-message-root'] {
+    background: transparent !important;
+  }
+
   /* Pills (profile/model/effort) read --composer-control-size for their
      height — bump it on mobile only, scoped to the pills row so the
      composer's +/mic/send icon buttons keep their 1.5rem size. */

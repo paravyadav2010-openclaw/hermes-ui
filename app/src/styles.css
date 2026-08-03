@@ -2047,11 +2047,17 @@ text-* variant utilities. */ .btn-arc {
     /* Bottom fade — BURNED INTO the chat surface via mask (no overlay div, so
        it can never paint over the composer, pills, rings, or status bar —
        those live outside the thread viewport). The mask keeps the top 100%
-       visible and fades the bottom ~13rem of the thread content to
-       transparent, so the last messages sink into the background before the
-       composer area. */
-    -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 13rem), transparent 100%);
-    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 13rem), transparent 100%);
+       visible and fades the bottom of the thread content to transparent.
+       The fade FOLLOWS the composer: its transparent end sits exactly at the
+       composer's top edge (max(safe, keyboard-inset) + 0.875rem + measured
+       stack), so when the keyboard lifts the composer + pills the fade lifts
+       with them and the chat stays blended behind them. */
+    --aui-composer-top: calc(
+      max(env(safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px)) + 0.875rem +
+      var(--composer-stack-height, var(--composer-measured-height, 3.875rem))
+    );
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--aui-composer-top) - 13rem), transparent calc(100% - var(--aui-composer-top)));
+    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--aui-composer-top) - 13rem), transparent calc(100% - var(--aui-composer-top)));
   }  /* Jump-to-bottom arrow: composer is fixed (overlays the thread), so the
      button's default in-flow bottom calc lands behind it. Anchor it above
      the composer ROOT (surface + floating pills, measured by

@@ -33,6 +33,15 @@ import type { BrowserManageResponse, SessionTitleResponse, SlashExecResponse } f
 
 import { type GatewayRequest, isSessionIdCandidate, renderCommandsCatalog, slashStatusText } from './utils'
 
+/**
+ * Exec slash commands run synchronously on the gateway. /compress on a large
+ * context can take minutes — the 30s default RPC timeout must not fire first
+ * (it silently drops the completion summary and the fallback re-dispatch
+ * collides with the compression lock). Mirrors the agent-turn ceiling
+ * (agent.gateway_timeout = 1800s) so a genuine hang still surfaces.
+ */
+const SLASH_EXEC_TIMEOUT_MS = 10 * 60_000
+
 /** Everything a slash handler needs about the invocation it's serving. */
 interface SlashActionCtx {
   arg: string
@@ -185,10 +194,20 @@ export function useSlashCommand(deps: SlashCommandDeps) {
         }
 
         try {
-          const result = await requestGateway<unknown>('slash.exec', {
-            session_id: sessionId,
-            command: command.replace(/^\/+/, '')
-          })
+          // Long-running exec commands (notably /compress, which compresses
+          // synchronously server-side) can take minutes on a large context —
+          // the 30s default RPC timeout would fire first, the catch would
+          // fall back to command.dispatch, and the re-dispatched command
+          // would hit the compression lock → "already in progress" while the
+          // first compression silently finishes with no "done" summary.
+          const result = await requestGateway<unknown>(
+            'slash.exec',
+            {
+              session_id: sessionId,
+              command: command.replace(/^\/+/, '')
+            },
+            SLASH_EXEC_TIMEOUT_MS
+          )
 
           const dispatch = parseCommandDispatch(result)
 

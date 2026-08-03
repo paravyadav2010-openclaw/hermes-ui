@@ -348,7 +348,17 @@ export function useVoiceRecorder({
   // Apple's on-device SFSpeechRecognizer via the native HermesSpeech plugin
   // (Capacitor). Same engine as the iOS keyboard dictation — live partials,
   // offline, no gateway round trip. The plugin emits `partial` (while
-  // talking) and `final` (committed) events.
+  // talking) and `final` (committed) events. Accessed the Capacitor way:
+  // window.Capacitor.Plugins.HermesSpeech (NOT window.HermesSpeech — that
+  // does not exist in the bridge).
+  interface HermesSpeechPlugin {
+    start?: () => Promise<unknown>
+    stop?: () => Promise<unknown>
+    cancel?: () => Promise<unknown>
+    isAvailable?: () => Promise<{ available?: boolean; authorized?: boolean }>
+    addListener?: (event: string, fn: (data: { text?: string }) => void) => Promise<{ remove: () => void }>
+  }
+
   const stopNativeSpeech = useCallback(() => {
     if (!nativeSpeechRef.current) {
       return
@@ -363,7 +373,9 @@ export function useVoiceRecorder({
     nativeSpeechListenersRef.current = []
 
     try {
-      void (window as unknown as { HermesSpeech?: { stop?: () => Promise<unknown> } }).HermesSpeech?.stop?.()
+      void (
+        window as unknown as { Capacitor?: { Plugins?: { HermesSpeech?: HermesSpeechPlugin } } }
+      ).Capacitor?.Plugins?.HermesSpeech?.stop?.()
     } catch {
       // best effort
     }
@@ -373,7 +385,8 @@ export function useVoiceRecorder({
   }, [])
 
   const startNativeSpeech = useCallback((): boolean => {
-    const speech = (window as unknown as { HermesSpeech?: { start?: () => Promise<unknown>; addListener?: (event: string, fn: (data: { text?: string }) => void) => Promise<{ remove: () => void }> } }).HermesSpeech
+    const speech = (window as unknown as { Capacitor?: { Plugins?: { HermesSpeech?: HermesSpeechPlugin } } })
+      .Capacitor?.Plugins?.HermesSpeech
 
     if (!speech?.start) {
       return false

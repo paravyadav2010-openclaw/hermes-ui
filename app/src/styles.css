@@ -1950,6 +1950,11 @@ text-* variant utilities. */ .btn-arc {
     left: 1rem !important;
     right: 1rem !important;
     width: auto !important;
+    /* The chat bottom-fade gradient must stay on the chat — it must NOT show
+       through the composer surface, pills, or rings. The desktop glass fill
+       is translucent (92%); on the phone make it fully opaque so the fade
+       reads as chat-only. */
+    --composer-fill: var(--dt-card) !important;
     /* Neutralise the JSX `-translate-x-1/2` centring utility. Tailwind v4
        uses the separate `translate` property (NOT transform), so resetting
        transform is not enough — and lightningcss folds `translate: none`

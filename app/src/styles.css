@@ -2056,10 +2056,16 @@ text-* variant utilities. */ .btn-arc {
       max(env(safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px)) + 0.875rem +
       var(--composer-stack-height, var(--composer-measured-height, 3.875rem))
     );
-    /* Fade zone: 13rem normally, but never more than half the visible chat
-       above the composer — when the keyboard lifts the composer ~21rem, a
-       full 13rem zone would swallow almost the entire visible thread. */
-    --aui-fade-zone: min(13rem, calc((100% - var(--aui-composer-top)) / 2));
+    /* Fade zone: 8rem normally. When the keyboard opens, shrink it hard —
+       the composer rides ~21rem up, and a large zone above it swallows the
+       visible thread. Keyboard-inset participates directly: the third
+       min() term subtracts 1rem of zone per 4rem of keyboard, so
+       ~21rem keyboard ≈ ~2.75rem zone. End still tracks composer top. */
+    --aui-fade-zone: min(
+      8rem,
+      calc((100% - var(--aui-composer-top)) / 2),
+      calc(8rem - var(--keyboard-inset, 0px) / 4)
+    );
     -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--aui-composer-top) - var(--aui-fade-zone)), transparent calc(100% - var(--aui-composer-top)));
     mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--aui-composer-top) - var(--aui-fade-zone)), transparent calc(100% - var(--aui-composer-top)));
   }  /* Jump-to-bottom arrow: composer is fixed (overlays the thread), so the

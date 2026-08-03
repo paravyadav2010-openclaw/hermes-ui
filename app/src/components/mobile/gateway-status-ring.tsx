@@ -1,13 +1,15 @@
 import { useStore } from '@nanostores/react'
 import { useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useNavigate } from 'react-router-dom'
 
 import { GatewayMenuPanel } from '@/app/shell/gateway-menu-panel'
 import { useStatusSnapshot } from '@/app/shell/hooks/use-status-snapshot'
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
+import { AGENTS_ROUTE } from '@/app/routes'
 import { Codicon } from '@/components/ui/codicon'
 import { triggerHaptic } from '@/lib/haptics'
-import { Loader2 } from '@/lib/icons'
+import { Hash, Loader2 } from '@/lib/icons'
 import { LiveDuration } from '@/lib/statusbar'
 import { setSessionYolo } from '@/lib/yolo-session'
 import {
@@ -23,6 +25,11 @@ import { $subagentsBySession, activeSubagentCount, failedSubagentCount } from '@
 import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { ZapFilled } from '@/lib/icons'
+import {
+  $backendUpdateApply,
+  $backendUpdateStatus,
+  openUpdateOverlayFor
+} from '@/store/updates'
 
 /**
  * Gateway status ring — left edge of the composer pill row, mirror of the
@@ -50,6 +57,7 @@ function stateArc(state: string, inferenceReady: boolean): { color: string; pct:
 export function GatewayStatusRing() {
   const { t } = useI18n()
   const copy = t.agents
+  const navigate = useNavigate()
   const gatewayState = useStore($gatewayState)
   const { requestGateway } = useGatewayRequest()
   const { inferenceStatus, statusSnapshot } = useStatusSnapshot(gatewayState, requestGateway)
@@ -60,6 +68,10 @@ export function GatewayStatusRing() {
   const sessionStartedAt = useStore($sessionStartedAt)
   const turnStartedAt = useStore($turnStartedAt)
   const subagentsBySession = useStore($subagentsBySession)
+  const backendStatus = useStore($backendUpdateStatus)
+  const backendApply = useStore($backendUpdateApply)
+  const backendApplying = backendApply.applying || backendApply.stage === 'restart'
+  const backendVersion = backendStatus?.currentSha
 
   // Same aggregation as the desktop status bar's agents item: running/failed
   // subagent counts across every session.
@@ -183,9 +195,19 @@ export function GatewayStatusRing() {
                 {sessionStartedAt ? <LiveDuration since={sessionStartedAt} /> : null}
               </span>
             </div>
-            {/* Agents — the old status bar's agents item (subagents running /
-                failed counts), same aggregation as the desktop status bar. */}
-            <div className="flex items-center justify-between gap-2 border-b border-(--ui-stroke-tertiary)/40 px-3 py-1.5 text-[0.6875rem] text-(--ui-text-secondary)">
+            {/* Agents — the old status bar's agents item: SAME functionality,
+                just relocated. The desktop item navigates to AGENTS_ROUTE
+                (Spawn tree); this button does exactly that (plus closes the
+                popover so the route view is visible). */}
+            <button
+              className="flex w-full items-center justify-between gap-2 border-b border-(--ui-stroke-tertiary)/40 px-3 py-1.5 text-left text-[0.6875rem] text-(--ui-text-secondary) tap-highlight-transparent"
+              onClick={() => {
+                triggerHaptic('selection')
+                setOpen(false)
+                navigate(AGENTS_ROUTE)
+              }}
+              type="button"
+            >
               <span className="flex items-center gap-1.5">
                 {subagentsFailed > 0 ? (
                   <Codicon name="error" size="0.75rem" className="text-destructive" />
@@ -200,7 +222,30 @@ export function GatewayStatusRing() {
                 {subagentsRunning > 0 ? <span>{copy.running}: {subagentsRunning}</span> : null}
                 {subagentsFailed > 0 ? <span className="text-destructive">{copy.failed}: {subagentsFailed}</span> : null}
               </span>
-            </div>
+            </button>
+            {/* Backend version — the old status bar's backend item: SAME
+                binding (openUpdateOverlayFor('backend')), just relocated. */}
+            {backendVersion ? (
+              <button
+                className="flex w-full items-center justify-between gap-2 border-b border-(--ui-stroke-tertiary)/40 px-3 py-1.5 text-left text-[0.6875rem] text-(--ui-text-secondary) tabular-nums tap-highlight-transparent"
+                onClick={() => {
+                  triggerHaptic('selection')
+                  setOpen(false)
+                  openUpdateOverlayFor('backend')
+                }}
+                type="button"
+              >
+                <span className="flex items-center gap-1.5">
+                  {backendApplying ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <Hash className="size-3" />
+                  )}
+                  <span>{backendApplying ? 'backend update' : `backend ${backendVersion.slice(0, 7)}`}</span>
+                </span>
+                <Codicon name="chevron-right" size="0.625rem" className="opacity-50" />
+              </button>
+            ) : null}
             {/* Same popover as the desktop gateway indicator — same info, same
                 live data (log tail polls while open, platforms from the
                 status snapshot, inference readiness). */}

@@ -1371,13 +1371,17 @@ export function DesktopController() {
               <Route element={null} path="profiles" />
               <Route element={null} path="settings" />
               <Route element={null} path="command-center" />
-              <Route element={null} path="agents" />
+              <Route
+                element={<Suspense fallback={null}><AgentsView onClose={closeOverlayToPreviousRoute} /></Suspense>}
+                path="agents"
+              />
               <Route element={<Navigate replace to={NEW_CHAT_ROUTE} />} path="new" />
               <Route element={<LegacySessionRedirect />} path="sessions/:sessionId" />
               <Route element={<Navigate replace to={NEW_CHAT_ROUTE} />} path="*" />
             </Routes>
           </PaneMain>
         </AppShell>
+        <UpdatesOverlay />
       </MobileLayout>
     )
   }

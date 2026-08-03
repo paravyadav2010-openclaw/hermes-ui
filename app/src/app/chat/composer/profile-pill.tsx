@@ -26,7 +26,7 @@ export function ProfilePill({ disabled }: { disabled: boolean }) {
     <DropdownMenu onOpenChange={setOpen} open={open}>
       <Tip label={`Profile: ${label}`} side="top">
         <DropdownMenuTrigger asChild>
-          <Button aria-label={`Profile: ${label}`} className={PILL} disabled={disabled} onClick={() => triggerHaptic('open')} type="button" variant="ghost">
+          <Button aria-label={`Profile: ${label}`} className={PILL} disabled={disabled} onPointerDown={() => triggerHaptic('open')} type="button" variant="ghost">
             <span className="truncate">{label}</span>
           </Button>
         </DropdownMenuTrigger>

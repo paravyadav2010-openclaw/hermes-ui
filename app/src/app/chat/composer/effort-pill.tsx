@@ -72,7 +72,7 @@ export function EffortPill({ disabled }: { disabled: boolean }) {
             aria-label={copy.effort}
             className={PILL}
             disabled={disabled}
-            onClick={() => triggerHaptic('open')}
+            onPointerDown={() => triggerHaptic('open')}
             type="button"
             variant="ghost"
           >

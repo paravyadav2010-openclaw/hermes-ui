@@ -23,7 +23,7 @@ export function ProfilePill({ disabled }: { disabled: boolean }) {
   const label = activeProfile === 'default' ? 'default' : activeProfile
 
   return (
-    <DropdownMenu onOpenChange={setOpen} open={open}>
+    <DropdownMenu onOpenChange={nextOpen => { if (!nextOpen) triggerHaptic('close'); setOpen(nextOpen) }} open={open}>
       <Tip label={`Profile: ${label}`} side="top">
         <DropdownMenuTrigger asChild>
           <Button aria-label={`Profile: ${label}`} className={PILL} disabled={disabled} onPointerDown={() => triggerHaptic('open')} type="button" variant="ghost">

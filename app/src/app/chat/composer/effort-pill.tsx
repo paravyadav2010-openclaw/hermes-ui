@@ -65,7 +65,7 @@ export function EffortPill({ disabled }: { disabled: boolean }) {
   }
 
   return (
-    <DropdownMenu onOpenChange={setOpen} open={open}>
+    <DropdownMenu onOpenChange={nextOpen => { if (!nextOpen) triggerHaptic('close'); setOpen(nextOpen) }} open={open}>
       <Tip label={copy.effort} side="top">
         <DropdownMenuTrigger asChild>
           <Button

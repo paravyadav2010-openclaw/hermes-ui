@@ -100,7 +100,7 @@ export function ModelPill({
   }
 
   return (
-    <DropdownMenu onOpenChange={setOpen} open={open}>
+    <DropdownMenu onOpenChange={nextOpen => { if (!nextOpen) triggerHaptic('close'); setOpen(nextOpen) }} open={open}>
       <Tip label={title} side="top">
         <DropdownMenuTrigger asChild>
           <Button aria-label={title} className={pillClass} disabled={disabled} onPointerDown={() => triggerHaptic('open')} type="button" variant="ghost">

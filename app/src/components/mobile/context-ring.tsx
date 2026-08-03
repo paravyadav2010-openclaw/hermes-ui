@@ -77,7 +77,7 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
     <span className="relative inline-flex">
       <button
         aria-label="Context usage"
-        className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full bg-(--ui-bg-elevated) p-0 shadow-sm tap-highlight-transparent"
+        className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full backdrop-blur-[1rem] backdrop-saturate-[1.12] bg-(--ui-bg-elevated)/60 p-0 shadow-[0_0.25rem_0.75rem_color-mix(in_srgb,#141e3c_10%,transparent)] tap-highlight-transparent"
         onClick={toggle}
         type="button"
       >

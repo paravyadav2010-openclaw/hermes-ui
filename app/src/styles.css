@@ -2054,10 +2054,10 @@ text-* variant utilities. */ .btn-arc {
       max(env(safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px)) + 0.875rem +
       var(--composer-stack-height, var(--composer-measured-height, 3.875rem))
     );
-    --aui-fade-lift: 1rem;
-    /* Compact 4rem zone so the fade is visible but doesn't climb far up the
+    --aui-fade-lift: 0.25rem;
+    /* Compact 3.5rem zone so the fade is visible but doesn't climb far up the
        thread (earlier tall zones read as 'too high'). */
-    --aui-fade-zone: 4rem;
+    --aui-fade-zone: 3.5rem;
     -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--aui-composer-top) - var(--aui-fade-lift) - var(--aui-fade-zone)), transparent calc(100% - var(--aui-composer-top) - var(--aui-fade-lift)));
     mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--aui-composer-top) - var(--aui-fade-lift) - var(--aui-fade-zone)), transparent calc(100% - var(--aui-composer-top) - var(--aui-fade-lift)));
   }

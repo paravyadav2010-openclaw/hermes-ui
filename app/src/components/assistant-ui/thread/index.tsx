@@ -15,6 +15,7 @@ import { UserMessage } from '@/components/assistant-ui/thread/user-message'
 import { Intro, type IntroProps } from '@/components/chat/intro'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import type { HermesGateway } from '@/hermes'
+import { useCopyFeedback } from '@/hooks/use-copy-feedback'
 import { useI18n } from '@/i18n'
 import { notifyError } from '@/store/notifications'
 
@@ -53,6 +54,64 @@ export const Thread: FC<{
   >(null)
 
   const closeRestoreConfirm = useCallback(() => setRestoreConfirmTarget(null), [])
+
+  // Double-click-to-copy (PWA 9400 parity, 2026-08-03): double-clicking any
+  // rendered message text copies the closest copyable unit — the message text
+  // itself, or the inline code / fenced block when the pointer is inside one.
+  // The user bubble handles its own double-click (edit-disambiguation) and
+  // stops propagation so this delegated handler never fires for it.
+  const { copied, copy: copyText } = useCopyFeedback()
+
+  const handleThreadDoubleClick = useCallback(
+    (event: React.MouseEvent<HTMLDivElement>) => {
+      const target = event.target as HTMLElement | null
+
+      if (!target) {
+        return
+      }
+
+      // Never hijack interactive elements (buttons, links, inputs, the edit
+      // composer, code-copy buttons, restore/stop actions).
+      if (target.closest('button, a, input, textarea, [contenteditable="true"]')) {
+        return
+      }
+
+      // The user bubble is an edit button — it resolves click-vs-double-click
+      // itself and stops propagation on copy; skip it here.
+      if (target.closest('[data-slot="aui_user-message-root"]')) {
+        return
+      }
+
+      const inlineCode = target.closest('code')
+      const fencedBlock = target.closest('pre')
+
+      if (inlineCode) {
+        void copyText(inlineCode.textContent ?? '')
+        return
+      }
+
+      if (fencedBlock) {
+        void copyText(fencedBlock.textContent ?? '')
+        return
+      }
+
+      const messageRoot = target.closest(
+        '[data-slot="aui_assistant-message-root"], [data-slot="aui_system-message-root"]'
+      )
+
+      if (!messageRoot) {
+        return
+      }
+
+      // Copy the message's rendered text (skip chrome: meta bars, action
+      // clusters, timestamps). The content slot holds the markdown output.
+      const contentSlot = messageRoot.querySelector('[data-slot="aui_assistant-message-content"]')
+      const text = (contentSlot ?? messageRoot).textContent ?? ''
+
+      void copyText(text)
+    },
+    [copyText]
+  )
 
   const confirmRestore = useCallback(() => {
     if (!restoreConfirmTarget || !onRestoreToMessage) {
@@ -95,7 +154,10 @@ export const Thread: FC<{
   ) : undefined
 
   return (
-    <div className="relative grid h-full min-h-0 max-w-full grid-rows-[minmax(0,1fr)] overflow-hidden bg-transparent contain-[layout_paint]">
+    <div
+      className="relative grid h-full min-h-0 max-w-full grid-rows-[minmax(0,1fr)] overflow-hidden bg-transparent contain-[layout_paint]"
+      onDoubleClick={handleThreadDoubleClick}
+    >
       <ThreadMessageList
         clampToComposer={clampToComposer}
         components={messageComponents}
@@ -105,6 +167,17 @@ export const Thread: FC<{
       />
       {loading === 'session' && <CenteredThreadSpinner />}
       <ThreadTimeline />
+      {/* Double-click-copy feedback pill (PWA 9400 parity): appears briefly
+          above the composer when any message text was copied. */}
+      {copied && (
+        <div
+          aria-live="polite"
+          className="pointer-events-none absolute bottom-4 left-1/2 z-50 -translate-x-1/2 rounded-full border border-(--ui-stroke-secondary) bg-(--dt-card) px-3 py-1 text-[0.6875rem] font-medium text-[color:var(--ui-text-primary)] shadow-lg"
+          role="status"
+        >
+          {t.common.copied}
+        </div>
+      )}
       <ConfirmDialog
         confirmLabel={copy.restoreConfirm}
         description={copy.restoreBody}

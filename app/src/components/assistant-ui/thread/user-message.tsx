@@ -1,11 +1,13 @@
 import { ActionBarPrimitive, BranchPickerPrimitive, MessagePrimitive, useAuiState } from '@assistant-ui/react'
-import { type FC, type ReactNode, useCallback, useRef, useState } from 'react'
+import { useActionBarEdit } from '@assistant-ui/core/react'
+import { type FC, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 
 import { DirectiveContent } from '@/components/assistant-ui/directive-text'
 import { messageAttachmentRefs, messageContentText } from '@/components/assistant-ui/thread/content'
 import { type RestoreMessageTarget } from '@/components/assistant-ui/thread/types'
 import { UserMessageText } from '@/components/assistant-ui/thread/user-message-text'
 import { Codicon } from '@/components/ui/codicon'
+import { useCopyFeedback } from '@/hooks/use-copy-feedback'
 import { useResizeObserver } from '@/hooks/use-resize-observer'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
@@ -13,6 +15,21 @@ import { StopFilled } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { notifyThreadEditOpen } from '@/store/thread-scroll'
 import { isWatchWindow } from '@/store/windows'
+
+// Tiny "Copied" chip shown inside the bubble briefly after double-click copy
+// (PWA 9400 parity). Same theme tokens as the thread-level copy pill.
+const CopyFeedbackBadge = () => {
+  const { t } = useI18n()
+
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute right-2 top-1.5 z-10 rounded-full border border-(--ui-stroke-tertiary) bg-(--dt-card) px-1.5 py-0.5 text-[0.625rem] leading-none text-[color:var(--ui-text-primary)] shadow-sm"
+    >
+      {t.common.copied}
+    </span>
+  )
+}
 
 export function StickyHumanMessageContainer({
   attachments,
@@ -195,6 +212,54 @@ export const UserMessage: FC<{
 
   useResizeObserver(measureClamp, clampInnerRef)
 
+  // Double-click-to-copy (ported from PWA 9400): single click keeps opening
+  // the edit composer — the edit is just deferred 250ms so a second click can
+  // cancel it and copy the prompt instead.
+  const { edit, disabled: editUnavailable } = useActionBarEdit()
+  const { copied, copy: copyMessage } = useCopyFeedback()
+  const editTimerRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (editTimerRef.current !== null) {
+        window.clearTimeout(editTimerRef.current)
+      }
+    }
+  }, [])
+
+  const scheduleEdit = useCallback(() => {
+    if (editTimerRef.current !== null) {
+      window.clearTimeout(editTimerRef.current)
+    }
+
+    editTimerRef.current = window.setTimeout(() => {
+      editTimerRef.current = null
+      notifyThreadEditOpen()
+      edit()
+    }, 250)
+  }, [edit])
+
+  const handleBubbleDoubleClickCapture = useCallback(() => {
+    // Capture phase: fires even when the target's own dblclick handler stops
+    // propagation (inline code copies itself) — the pending edit-open from
+    // the preceding clicks must still be cancelled, or the composer pops
+    // open 250ms after the copy.
+    if (editTimerRef.current !== null) {
+      window.clearTimeout(editTimerRef.current)
+      editTimerRef.current = null
+    }
+  }, [])
+
+  const handleBubbleDoubleClick = useCallback(
+    (event: { preventDefault: () => void; stopPropagation: () => void }) => {
+      event.preventDefault()
+      event.stopPropagation()
+
+      void copyMessage(messageText)
+    },
+    [copyMessage, messageText]
+  )
+
   // Injected background-process notification, not a human prompt — render the
   // compact system-style notice (after all hooks above have run).
   if (PROCESS_NOTIFICATION_RE.test(messageText.trim())) {
@@ -261,6 +326,7 @@ export const UserMessage: FC<{
               {readOnly ? (
                 // Spectator transcript: clicking only toggles the clamp so the
                 // full prompt is readable — never opens an edit composer.
+                // Double-click still copies the prompt.
                 <button
                   aria-expanded={bodyClamped ? expanded : undefined}
                   className={cn(bubbleClassName, !bodyClamped && 'cursor-default')}
@@ -272,26 +338,35 @@ export const UserMessage: FC<{
                     triggerHaptic('selection')
                     setExpanded(value => !value)
                   }}
+                  onDoubleClick={handleBubbleDoubleClick}
+                  onDoubleClickCapture={handleBubbleDoubleClickCapture}
                   title={bodyClamped ? (expanded ? t.common.collapse : copy.expandMessage) : undefined}
                   type="button"
                 >
                   {bubbleContent}
+                  {copied && <CopyFeedbackBadge />}
                 </button>
               ) : (
-                // Always editable — clicking opens the edit composer even while a
-                // turn streams; sending the edit reverts (interrupt + rewind).
-                <ActionBarPrimitive.Edit asChild>
-                  <button
-                    aria-label={copy.editMessage}
-                    className={bubbleClassName}
-                    onClick={() => triggerHaptic('selection')}
-                    onPointerDown={() => notifyThreadEditOpen()}
-                    title={copy.editMessage}
-                    type="button"
-                  >
-                    {bubbleContent}
-                  </button>
-                </ActionBarPrimitive.Edit>
+                // Always editable — single click opens the edit composer (after
+                // a 250ms hold so double-click can win); double-click copies
+                // the prompt instead. Sending an edit reverts (interrupt +
+                // rewind), same as before.
+                <button
+                  aria-label={copy.editMessage}
+                  className={bubbleClassName}
+                  disabled={editUnavailable}
+                  onClick={() => {
+                    triggerHaptic('selection')
+                    scheduleEdit()
+                  }}
+                  onDoubleClick={handleBubbleDoubleClick}
+                  onDoubleClickCapture={handleBubbleDoubleClickCapture}
+                  title={copy.editMessage}
+                  type="button"
+                >
+                  {bubbleContent}
+                  {copied && <CopyFeedbackBadge />}
+                </button>
               )}
               {(showStop || showRestore) && (
                 <div className="pointer-events-none absolute right-2 bottom-2 z-10 flex items-center justify-center opacity-0 transition-opacity group-hover/user-message:opacity-100 group-focus-within/user-message:opacity-100">

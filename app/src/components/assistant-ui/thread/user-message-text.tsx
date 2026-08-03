@@ -2,6 +2,7 @@ import type { FC } from 'react'
 import { Fragment, useMemo } from 'react'
 
 import { DirectiveContent } from '@/components/assistant-ui/directive-text'
+import { CopyableInlineCode } from '@/components/assistant-ui/copyable-inline-code'
 import { cn } from '@/lib/utils'
 
 // User messages should render the bare-minimum of markdown: backtick `code`
@@ -132,13 +133,15 @@ const InlineSegmentView: FC<{ text: string }> = ({ text }) => {
     <span className="wrap-anywhere block whitespace-pre-line" data-slot="aui_user-inline-text">
       {nodes.map((node, nodeIndex) =>
         node.kind === 'inline-code' ? (
-          <code
+          // Double-click copies the span (PWA 9400 parity); the dblclick stops
+          // propagation so the bubble's own copy handler doesn't also fire.
+          <CopyableInlineCode
             className="mx-px rounded bg-[color-mix(in_srgb,currentColor_8%,transparent)] px-1 py-px font-mono text-[0.92em]"
             data-slot="aui_user-inline-code"
             key={`code-${nodeIndex}`}
           >
             {node.code}
-          </code>
+          </CopyableInlineCode>
         ) : (
           // Pass plain-text bits through DirectiveContent so @file:/@url: chips
           // still render. DirectiveContent already preserves whitespace.

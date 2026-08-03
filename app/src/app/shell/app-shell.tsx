@@ -7,6 +7,7 @@ import { PaneShell } from '@/components/pane-shell'
 import { FloatingPet } from '@/components/pet/floating-pet'
 import { SidebarProvider } from '@/components/ui/sidebar'
 import { useMediaQuery } from '@/hooks/use-media-query'
+import { useMobile } from '@/hooks/use-mobile'
 import {
   $fileBrowserOpen,
   $panesFlipped,
@@ -78,6 +79,7 @@ export function AppShell({
   const fileBrowserOpen = useStore($fileBrowserOpen)
   const panesFlipped = useStore($panesFlipped)
   const narrowViewport = useMediaQuery(SIDEBAR_COLLAPSE_MEDIA_QUERY)
+  const isMobile = useMobile()
   const fileBrowserWidthOverride = useStore($paneWidthOverride(FILE_BROWSER_PANE_ID))
   const connection = useStore($connection)
   const viewportFullscreen = useSyncExternalStore(subscribeWindowSize, viewportIsFullscreen, () => false)
@@ -221,8 +223,9 @@ export function AppShell({
         {mainOverlays}
 
         {/* The compact pop-out drops the statusbar — it's a scratch window, not
-            the full shell. */}
-        {!isSecondaryWindow() && <StatusbarControls items={statusbarItems} leftItems={leftStatusbarItems} />}
+            the full shell. Mobile replaced it with rings + pills (status bar
+            removal, 2026-08-03) — see the gateway/context ring popovers. */}
+        {!isSecondaryWindow() && !isMobile && <StatusbarControls items={statusbarItems} leftItems={leftStatusbarItems} />}
       </main>
 
       {overlays}

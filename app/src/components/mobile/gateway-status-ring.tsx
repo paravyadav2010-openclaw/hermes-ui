@@ -47,7 +47,11 @@ export function GatewayStatusRing() {
     <span className="relative inline-flex">
       <button
         aria-label="Gateway status"
-        className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full backdrop-blur-[1rem] backdrop-saturate-[1.12] bg-(--ui-bg-elevated)/60 p-0 shadow-[0_0.25rem_0.75rem_color-mix(in_srgb,#141e3c_10%,transparent)] tap-highlight-transparent"
+        className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full p-0 tap-highlight-transparent"
+        style={{
+          background:
+            'radial-gradient(circle, color-mix(in srgb, var(--ui-bg-elevated) 55%, transparent) 0%, transparent 72%)'
+        }}
         onClick={() => {
           triggerHaptic(open ? 'close' : 'open')
           setOpen(o => !o)

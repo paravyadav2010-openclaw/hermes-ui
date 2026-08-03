@@ -841,7 +841,7 @@ export function ChatBar({
       <ComposerPrimitive.Unstable_TriggerPopoverRoot>
         <ComposerPrimitive.Root
           className={cn(
-            'group/composer z-30 overflow-visible rounded-full',
+            'group/composer z-30 overflow-visible rounded-[1.5rem]',
             poppedOut
               ? // Floating: the composer (with its own border) floats with an even
                 // 5px transparent grab margin around it — drag that to move it.
@@ -1048,7 +1048,7 @@ export function ChatBarFallback() {
   return (
     <div
       className={cn(
-        'group/composer absolute bottom-2 left-1/2 z-30 w-[min(var(--composer-width),calc(100%-2rem))] max-w-full -translate-x-1/2 rounded-full pt-2 pb-[var(--composer-shell-pad-block-end)]'
+        'group/composer absolute bottom-2 left-1/2 z-30 w-[min(var(--composer-width),calc(100%-2rem))] max-w-full -translate-x-1/2 rounded-[1.5rem] pt-2 pb-[var(--composer-shell-pad-block-end)]'
       )}
       data-slot="composer-root"
     >

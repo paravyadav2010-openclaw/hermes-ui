@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { Tip } from '@/components/ui/tooltip'
+import { triggerHaptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
 import { $activeGatewayProfile, $profiles, ensureGatewayProfile } from '@/store/profile'
 
@@ -25,7 +26,7 @@ export function ProfilePill({ disabled }: { disabled: boolean }) {
     <DropdownMenu onOpenChange={setOpen} open={open}>
       <Tip label={`Profile: ${label}`} side="top">
         <DropdownMenuTrigger asChild>
-          <Button aria-label={`Profile: ${label}`} className={PILL} disabled={disabled} type="button" variant="ghost">
+          <Button aria-label={`Profile: ${label}`} className={PILL} disabled={disabled} onClick={() => triggerHaptic('open')} type="button" variant="ghost">
             <span className="truncate">{label}</span>
           </Button>
         </DropdownMenuTrigger>
@@ -35,7 +36,7 @@ export function ProfilePill({ disabled }: { disabled: boolean }) {
           <DropdownMenuItem
             key={profile.name}
             className={cn('cursor-pointer text-xs', profile.name === activeProfile && 'font-semibold')}
-            onClick={() => { void ensureGatewayProfile(profile.name); setOpen(false) }}
+            onClick={() => { triggerHaptic('selection'); void ensureGatewayProfile(profile.name); setOpen(false) }}
           >
             {profile.is_default ? 'default' : profile.name}
           </DropdownMenuItem>

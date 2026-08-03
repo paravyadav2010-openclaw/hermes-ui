@@ -7,6 +7,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuTrigger } from '@/compon
 import { GlyphSpinner } from '@/components/ui/glyph-spinner'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
+import { triggerHaptic } from '@/lib/haptics'
 import { useMobile } from '@/hooks/use-mobile'
 import { ChevronDown } from '@/lib/icons'
 import { modelBaseId } from '@/lib/model-status-label'
@@ -102,7 +103,7 @@ export function ModelPill({
     <DropdownMenu onOpenChange={setOpen} open={open}>
       <Tip label={title} side="top">
         <DropdownMenuTrigger asChild>
-          <Button aria-label={title} className={pillClass} disabled={disabled} type="button" variant="ghost">
+          <Button aria-label={title} className={pillClass} disabled={disabled} onClick={() => triggerHaptic('open')} type="button" variant="ghost">
             {label}
           </Button>
         </DropdownMenuTrigger>

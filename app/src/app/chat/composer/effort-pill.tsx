@@ -16,6 +16,7 @@ import {
 import { Switch } from '@/components/ui/switch'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
+import { triggerHaptic } from '@/lib/haptics'
 import { ChevronDown } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { $currentReasoningEffort, setCurrentReasoningEffort } from '@/store/session'
@@ -54,10 +55,12 @@ export function EffortPill({ disabled }: { disabled: boolean }) {
   const displayLabel = reasoningEffort && reasoningEffort !== 'none' ? reasoningEffort : 'off'
 
   const patchEffort = (next: string) => {
+    triggerHaptic('selection')
     setCurrentReasoningEffort(next)
   }
 
   const toggleThinking = (on: boolean) => {
+    triggerHaptic('selection')
     setCurrentReasoningEffort(on ? 'medium' : 'none')
   }
 
@@ -69,6 +72,7 @@ export function EffortPill({ disabled }: { disabled: boolean }) {
             aria-label={copy.effort}
             className={PILL}
             disabled={disabled}
+            onClick={() => triggerHaptic('open')}
             type="button"
             variant="ghost"
           >

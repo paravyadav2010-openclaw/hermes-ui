@@ -41,10 +41,14 @@ function DropdownMenuSearch({
 }: Omit<React.ComponentProps<'input'>, 'type'> & {
   onValueChange?: (value: string) => void
 }) {
+  // Autofocus opens the on-screen keyboard on touch devices — the phone
+  // keyboard must stay closed until the user actually taps the search box.
+  const shouldAutoFocus = typeof window !== 'undefined' && window.matchMedia?.('(hover: hover) and (pointer: fine)')?.matches
+
   return (
     <div className="px-2.5 py-1.5" data-slot="dropdown-menu-search">
       <input
-        autoFocus
+        autoFocus={shouldAutoFocus}
         className={cn(
           'h-4 w-full bg-transparent text-xs leading-none text-foreground placeholder:text-(--ui-text-tertiary) focus:outline-none',
           className

@@ -17,6 +17,7 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import type { HermesGateway } from '@/hermes'
 import { useI18n } from '@/i18n'
+import { triggerHaptic } from '@/lib/haptics'
 import { requestModelOptions } from '@/lib/model-options'
 import {
   currentPickerSelection,
@@ -279,6 +280,8 @@ export function ModelMenuPanel({ gateway, onSelectModel, requestGateway }: Model
                 // edit submenu (reasoning/fast) is reached by HOVER, so you can
                 // still tweak those without the click dismissing everything.
                 const activate = () => {
+                  triggerHaptic('selection')
+
                   if (!isCurrent) {
                     void selectFamily(family, group.provider)
                   }

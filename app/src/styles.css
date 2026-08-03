@@ -1976,6 +1976,32 @@ text-* variant utilities. */ .btn-arc {
     transition: bottom 200ms cubic-bezier(0.25, 0.1, 0.25, 1) !important;
     z-index: 20 !important;
   }
+  /* Global rounded edges — the phone UI should have no square corners.
+     Every box/rectangle (dialogs, dropdowns, popovers, panels, inputs,
+     code blocks, tables, cards) gets a generous radius. */
+  [data-slot='dialog-content'],
+  [data-slot='dropdown-menu-content'],
+  [data-slot='popover-content'],
+  [data-slot='sheet-content'],
+  [data-slot='composer-panel-card'],
+  .aui-md pre,
+  .aui-md table,
+  .aui-md blockquote,
+  .aui-md [data-streamdown='code-block'],
+  [data-slot='aui_assistant-message-content'] pre,
+  [data-slot='tool-block'],
+  [data-slot='aui_thinking-disclosure'] {
+    border-radius: 0.875rem !important;
+  }
+
+  /* Inputs and buttons keep their own radii but never square. */
+  input,
+  select,
+  textarea,
+  [contenteditable='true'] {
+    border-radius: 0.625rem !important;
+  }
+
   /* Pills (profile/model/effort) read --composer-control-size for their
      height — bump it on mobile only, scoped to the pills row so the
      composer's +/mic/send icon buttons keep their 1.5rem size. */

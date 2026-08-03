@@ -1931,6 +1931,24 @@ text-* variant utilities. */ .btn-arc {
     overflow-x: clip;
   }
 
+  /* Phone readability: raise the root em from 0.875rem to 1.0625rem — every
+     rem-sized surface (chat text, pills, rings, composer, dialogs) scales
+     ~21% in one place. Theme variables drive the colors, so this stays
+     adaptive in both light and dark mode. */
+  html {
+    font-size: 1.0625rem !important;
+  }
+  /* Chat message text on top of the root bump — 13px → 14px so paragraphs
+     read clearly at arm's length. */
+  body {
+    --conversation-text-font-size: 0.875rem;
+    /* Native iOS face. The desktop stack (Segoe…) doesn't exist on iPhone,
+       and this also guards against a theme override pointing at a font the
+       phone doesn't ship — SF Pro is the most legible family on iOS and
+       adapts to both light and dark mode. */
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif !important;
+  }
+
   /* Dialog content fills the screen */
   [data-slot='dialog-content'] {
     width: 100% !important;
@@ -2050,12 +2068,20 @@ text-* variant utilities. */ .btn-arc {
      composer's +/mic/send icon buttons keep their 1.5rem size. */
   .mobile-pills-row {
     --composer-control-size: 1.875rem;
+    /* Separate the floating controls from the taller composer surface without
+       changing their alignment with one another. */
+    margin-top: 1.125rem !important;
   }
   [data-slot='composer-surface'] {
     overflow: hidden !important;
-    /* 44px (2.75rem) primary buttons + 2 × 5px surface pad = 54px. Any less
-       crops the circular send/mic bottoms inside the pill. */
-    min-height: 3.375rem !important;
+    /* Phone composer: 48px controls and 6px breathing room above/below. The
+       shared control token also makes steer match the send and dictation mic
+       instead of shrinking to the desktop ghost-button size. */
+    --composer-control-size: 3rem;
+    --composer-control-primary-size: 3rem;
+    --composer-surface-pad-y: 0.375rem;
+    --composer-input-min-height: 3rem;
+    min-height: 3.75rem !important;
   }
   [data-slot='composer-fade'] {
     overflow: hidden !important;
@@ -2078,17 +2104,19 @@ text-* variant utilities. */ .btn-arc {
      ≈ 6.9rem, so 12rem leaves comfortable air while chatting. Keyboard
      inset added so the last message clears the raised composer too. */
   [data-slot='aui_thread-viewport'] {
-    padding-bottom: calc(12rem + var(--composer-shell-pad-block-end, 0px) + var(--keyboard-inset, 0px)) !important;
+    padding-bottom: calc(5rem + var(--composer-shell-pad-block-end, 0px) + var(--keyboard-inset, 0px)) !important;
     /* Bottom fade — BURNED INTO the chat surface via mask (no overlay div, so
        it can never paint over the composer, pills, rings, or status bar).
        The fade lives ONLY in the region the opaque composer box covers
        (composer bottom → composer top): messages stay FULLY visible until
        they slide behind the composer — no crop above it. The composer
-       bottom tracks the keyboard, so the fade does too. */
+       bottom tracks the keyboard, so the fade does too. The fade zone is
+       capped at the SURFACE height (not the measured stack, which includes
+       the floating pills row) so the pills area never reads as empty space. */
     --aui-composer-bottom: calc(
       max(env(safe-area-inset-bottom, 0px), var(--keyboard-inset, 0px)) + 0.875rem
     );
-    --aui-fade-zone: var(--composer-stack-height, var(--composer-measured-height, 3.875rem));
+    --aui-fade-zone: 3.875rem !important;
     -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--aui-composer-bottom) - var(--aui-fade-zone)), transparent calc(100% - var(--aui-composer-bottom)));
     mask-image: linear-gradient(to bottom, black 0%, black calc(100% - var(--aui-composer-bottom) - var(--aui-fade-zone)), transparent calc(100% - var(--aui-composer-bottom)));
   }

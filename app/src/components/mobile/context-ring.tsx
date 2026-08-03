@@ -1,13 +1,13 @@
 import { useStore } from '@nanostores/react'
-import { useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 
-import { ContextUsageBar } from '@/app/shell/context-usage-panel'
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
-import { useI18n } from '@/i18n'
-import { triggerHaptic } from '@/lib/haptics'
-import { compactNumber } from '@/lib/format'
+import { ContextUsageBar } from '@/app/shell/context-usage-panel'
 import { Codicon } from '@/components/ui/codicon'
+import { useI18n } from '@/i18n'
+import { compactNumber } from '@/lib/format'
+import { triggerHaptic } from '@/lib/haptics'
 import { $currentUsage } from '@/store/session'
 import type { ContextBreakdown } from '@/types/hermes'
 
@@ -35,6 +35,7 @@ function ringColor(pct: number): string {
   // Continuous gradient: green (hue 120) → yellow (60) → red (0) as the
   // context window fills. Smooth interpolation, not discrete tiers.
   const hue = Math.max(0, 120 - pct * 1.2)
+
   return `hsl(${hue} 70% 50%)`
 }
 
@@ -46,6 +47,46 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
   const [open, setOpen] = useState(false)
   const [breakdown, setBreakdown] = useState<ContextBreakdown | null>(null)
   const [loading, setLoading] = useState(false)
+  const breakdownRequestRef = useRef(0)
+
+  // `/compress` rotates the live session id. The old implementation retained
+  // its breakdown cache across that rotation, so the ring kept drawing the
+  // pre-compression token count. Fetch against the current live tip and ignore
+  // any slower reply for the superseded session.
+  const refreshBreakdown = useCallback(() => {
+    if (!sessionId) {
+      setBreakdown(null)
+      setLoading(false)
+
+      return
+    }
+
+    const requestId = ++breakdownRequestRef.current
+    setLoading(true)
+    void requestGateway<ContextBreakdown>('session.context_breakdown', { session_id: sessionId })
+      .then(data => {
+        if (requestId === breakdownRequestRef.current) {
+          setBreakdown(data)
+        }
+      })
+      .catch(() => {
+        if (requestId === breakdownRequestRef.current) {
+          setBreakdown(null)
+        }
+      })
+      .finally(() => {
+        if (requestId === breakdownRequestRef.current) {
+          setLoading(false)
+        }
+      })
+  }, [requestGateway, sessionId])
+
+  useEffect(() => {
+    // Invalidate first so a compressed lineage never paints stale usage while
+    // the fresh gateway breakdown is in flight.
+    setBreakdown(null)
+    refreshBreakdown()
+  }, [refreshBreakdown])
 
   const used = breakdown?.context_used ?? usage.context_used ?? usage.total ?? 0
   const limit = breakdown?.context_max ?? usage.context_max ?? 0
@@ -58,12 +99,8 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
     setOpen(next)
     triggerHaptic(next ? 'open' : 'close')
 
-    if (next && !breakdown && !loading && sessionId) {
-      setLoading(true)
-      void requestGateway<ContextBreakdown>('session.context_breakdown', { session_id: sessionId })
-        .then(data => setBreakdown(data))
-        .catch(() => setBreakdown(null))
-        .finally(() => setLoading(false))
+    if (next && !breakdown && !loading) {
+      refreshBreakdown()
     }
   }
 
@@ -71,6 +108,7 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
     ...category,
     label: copy.categories[category.id as keyof typeof copy.categories] ?? category.label
   }))
+
   const segmentTotal = categories.reduce((sum, category) => sum + category.tokens, 0) || used || 1
 
   return (
@@ -78,15 +116,15 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
       <button
         aria-label="Context usage"
         className="flex h-12 w-12 cursor-pointer items-center justify-center rounded-full p-0 tap-highlight-transparent"
+        onClick={toggle}
         style={{
           background:
             'radial-gradient(circle, color-mix(in srgb, var(--ui-bg-elevated) 55%, transparent) 0%, transparent 72%)'
         }}
-        onClick={toggle}
         type="button"
       >
         <span className="pointer-events-none inline-flex">
-          <svg width={RING_SIZE} height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`}>
+          <svg height={RING_SIZE} viewBox={`0 0 ${RING_SIZE} ${RING_SIZE}`} width={RING_SIZE}>
             {/* Empty-tube track: faint full circle so the remaining space is
                 visible when usage is low (a bare quarter arc reads as broken).
                 Deliberately muted — the colored arc is the star. */}
@@ -164,6 +202,7 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
                 onClick={() => {
                   triggerHaptic('submit')
                   setOpen(false)
+                  setBreakdown(null)
                   onCompress()
                 }}
                 type="button"

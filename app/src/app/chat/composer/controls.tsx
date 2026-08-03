@@ -91,7 +91,10 @@ export function ComposerControls({
         <Tip label={steerTip}>
           <Button
             aria-label={steerLabel}
-            className={GHOST_ICON_BTN}
+            className={cn(
+              'size-(--composer-control-primary-size) shrink-0 rounded-full border border-border/65 p-0',
+              'bg-(--chrome-action-hover)/40 text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground'
+            )}
             disabled={disabled}
             onClick={onSteer}
             size="icon"

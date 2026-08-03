@@ -802,7 +802,18 @@ export function ChatBar({
 
         `asChild` swaps TextareaAutosize for a Radix Slot wrapping our
         plain <textarea>, which carries the binding but skips autosize. */}
-      <ComposerPrimitive.Input asChild submitMode="ctrlEnter" tabIndex={-1} unstable_focusOnScrollToBottom={false}>
+      {/* Don't let assistant-ui auto-focus the hidden input: on the phone the
+          keyboard pops every time a run starts / the thread switches (user:
+          'why the keyboard open everytime, it should only open when i click
+          on the input box'). The visible contentEditable owns focus. */}
+      <ComposerPrimitive.Input
+        asChild
+        submitMode="ctrlEnter"
+        tabIndex={-1}
+        unstable_focusOnRunStart={false}
+        unstable_focusOnScrollToBottom={false}
+        unstable_focusOnThreadSwitched={false}
+      >
         <textarea
           aria-hidden
           autoCapitalize="off"

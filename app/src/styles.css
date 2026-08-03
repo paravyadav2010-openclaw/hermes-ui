@@ -2004,6 +2004,14 @@ text-* variant utilities. */ .btn-arc {
      inset added so the last message clears the raised composer too. */
   [data-slot='aui_thread-viewport'] {
     padding-bottom: calc(12rem + var(--composer-shell-pad-block-end, 0px) + var(--keyboard-inset, 0px)) !important;
+    /* Bottom fade — BURNED INTO the chat surface via mask (no overlay div, so
+       it can never paint over the composer, pills, rings, or status bar —
+       those live outside the thread viewport). The mask keeps the top 100%
+       visible and fades the bottom ~9rem of the thread content to
+       transparent, so the last messages sink into the background before the
+       composer area. */
+    -webkit-mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 9rem), transparent 100%);
+    mask-image: linear-gradient(to bottom, black 0%, black calc(100% - 9rem), transparent 100%);
   }  /* Jump-to-bottom arrow: composer is fixed (overlays the thread), so the
      button's default in-flow bottom calc lands behind it. Anchor it above
      the composer ROOT (surface + floating pills, measured by

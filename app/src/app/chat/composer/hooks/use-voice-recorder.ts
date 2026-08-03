@@ -391,10 +391,30 @@ export function useVoiceRecorder({
   }, [])
 
   const startNativeSpeech = useCallback((): boolean => {
-    const speech = (window as unknown as { Capacitor?: { Plugins?: { HermesSpeech?: HermesSpeechPlugin } } })
-      .Capacitor?.Plugins?.HermesSpeech
+    const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean; Plugins?: { HermesSpeech?: HermesSpeechPlugin } } }).Capacitor
+    const speech = cap?.Plugins?.HermesSpeech
+
+    // Diagnostic (2026-08-03): surface the bridge state so a silent failure
+    // becomes visible instead of a dead button.
+    const diag = () => {
+      const present = {
+        capacitor: Boolean(cap),
+        plugins: Boolean(cap?.Plugins),
+        hermesSpeech: Boolean(speech),
+        start: Boolean(speech?.start),
+        platform: typeof cap?.isNativePlatform === 'function' ? String(cap.isNativePlatform()) : 'n/a'
+      }
+
+      notify({
+        kind: 'info',
+        title: `Speech bridge: ${present.hermesSpeech && present.start ? 'plugin OK' : 'plugin MISSING'}`,
+        message: JSON.stringify(present)
+      })
+    }
 
     if (!speech?.start) {
+      diag()
+
       return false
     }
 
@@ -489,10 +509,12 @@ export function useVoiceRecorder({
           setVoiceStatus('dictating')
         }
       })
-      .catch(() => {
+      .catch(error => {
         if (!nativeSpeechRef.current) {
           return
         }
+
+        notifyError(error, `Native speech start failed: ${error instanceof Error ? error.message : String(error)}`)
 
         nativeSpeechRef.current = false
         setVoiceStatus('idle')
@@ -501,6 +523,18 @@ export function useVoiceRecorder({
           void startStreaming()
         }
       })
+
+    // The native start() promise can also hang (no resolve, no reject) when
+    // the plugin never gets a callback — surface that instead of dead air.
+    window.setTimeout(() => {
+      if (nativeSpeechRef.current) {
+        notify({
+          kind: 'warning',
+          title: 'Speech start timed out',
+          message: 'The native plugin did not respond within 5s.'
+        })
+      }
+    }, 5_000)
 
     return true
   }, [focusInput, getDraftText, notify, notifyError, onInterim, onLiveDraft, onStreamingTranscript, onTranscript, onTranscribeAudio, startStreaming, stopNativeSpeech, voiceCopy])

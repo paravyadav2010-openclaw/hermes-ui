@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { registerPlugin } from '@capacitor/core'
 
 import { useI18n } from '@/i18n'
 import { notify, notifyError } from '@/store/notifications'
@@ -71,10 +72,15 @@ export function useVoiceRecorder({
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const speechTimeoutRef = useRef<number | null>(null)
   const clearSpeechTimeoutRef = useRef<number | null>(null)
+  const nativeSpeechFallbackTimerRef = useRef<number | null>(null)
   const streamingRef = useRef(false)
   const streamingChunkInFlightRef = useRef(false)
   const nativeSpeechRef = useRef(false)
   const nativeSpeechListenersRef = useRef<Array<() => void>>([])
+  // iOS may start the next speech task before its external composer store has
+  // published the final partial. Keep the committed native draft locally so a
+  // pause and resume never begins from an empty string.
+  const nativeDraftRef = useRef('')
 
   const clearTimers = () => {
     if (intervalRef.current) {
@@ -95,6 +101,11 @@ export function useVoiceRecorder({
     if (clearSpeechTimeoutRef.current) {
       window.clearTimeout(clearSpeechTimeoutRef.current)
       clearSpeechTimeoutRef.current = null
+    }
+
+    if (nativeSpeechFallbackTimerRef.current) {
+      window.clearTimeout(nativeSpeechFallbackTimerRef.current)
+      nativeSpeechFallbackTimerRef.current = null
     }
   }
 
@@ -355,8 +366,9 @@ export function useVoiceRecorder({
   // (Capacitor). Same engine as the iOS keyboard dictation — live partials,
   // offline, no gateway round trip. The plugin emits `partial` (while
   // talking) and `final` (committed) events. Accessed the Capacitor way:
-  // window.Capacitor.Plugins.HermesSpeech (NOT window.HermesSpeech — that
-  // does not exist in the bridge).
+  // `window.Capacitor.Plugins` only contains plugins shipped in Capacitor's
+  // default JS bundle. HermesSpeech is registered dynamically by the native
+  // wrapper, so it must be registered through Capacitor's JS API first.
   interface HermesSpeechPlugin {
     start?: () => Promise<unknown>
     stop?: () => Promise<unknown>
@@ -365,9 +377,44 @@ export function useVoiceRecorder({
     addListener?: (event: string, fn: (data: { text?: string; message?: string }) => void) => Promise<{ remove: () => void }>
   }
 
+  const getNativeSpeechPlugin = useCallback((): HermesSpeechPlugin | undefined => {
+    const cap = (
+      window as unknown as {
+        Capacitor?: {
+          isNativePlatform?: () => boolean
+          getPlatform?: () => string
+          registerPlugin?: (name: string, options?: unknown) => HermesSpeechPlugin
+          Plugins?: Record<string, HermesSpeechPlugin>
+        }
+      }
+    ).Capacitor
+
+    if (!cap) {
+      return undefined
+    }
+
+    if (cap.Plugins?.HermesSpeech) {
+      return cap.Plugins.HermesSpeech
+    }
+
+    try {
+      const plugin = registerPlugin<HermesSpeechPlugin>('HermesSpeech')
+      if (cap.Plugins) {
+        cap.Plugins.HermesSpeech = plugin
+      }
+      return plugin
+    } catch {
+      // The native bridge is unavailable (ordinary browser), not a dictation
+      // failure. The caller will choose the web/recording fallback.
+    }
+
+    return undefined
+  }, [])
+
   const stopNativeSpeech = useCallback(() => {
-    if (!nativeSpeechRef.current) {
-      return
+    if (nativeSpeechFallbackTimerRef.current !== null) {
+      window.clearTimeout(nativeSpeechFallbackTimerRef.current)
+      nativeSpeechFallbackTimerRef.current = null
     }
 
     nativeSpeechRef.current = false
@@ -379,37 +426,52 @@ export function useVoiceRecorder({
     nativeSpeechListenersRef.current = []
 
     try {
-      void (
-        window as unknown as { Capacitor?: { Plugins?: { HermesSpeech?: HermesSpeechPlugin } } }
-      ).Capacitor?.Plugins?.HermesSpeech?.stop?.()
+      getNativeSpeechPlugin()?.stop?.()
     } catch {
       // best effort
     }
 
     setInterimText('')
     setVoiceStatus('idle')
-  }, [])
+  }, [getNativeSpeechPlugin])
 
   const startNativeSpeech = useCallback((): boolean => {
-    const cap = (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean; Plugins?: { HermesSpeech?: HermesSpeechPlugin } } }).Capacitor
-    const speech = cap?.Plugins?.HermesSpeech
+    const cap = (
+      window as unknown as {
+        Capacitor?: {
+          isNativePlatform?: () => boolean
+          getPlatform?: () => string
+          Plugins?: Record<string, unknown>
+        }
+      }
+    ).Capacitor
 
-    // Diagnostic (2026-08-03): surface the bridge state so a silent failure
-    // becomes visible instead of a dead button.
+    const speech = getNativeSpeechPlugin()
+
+    // Diagnostic surface: if speech bridge or plugin is missing, present top-center toast + UI interim error
     const diag = () => {
       const present = {
         capacitor: Boolean(cap),
         plugins: Boolean(cap?.Plugins),
+        pluginKeys: cap?.Plugins ? Object.keys(cap.Plugins) : [],
         hermesSpeech: Boolean(speech),
         start: Boolean(speech?.start),
-        platform: typeof cap?.isNativePlatform === 'function' ? String(cap.isNativePlatform()) : 'n/a'
+        platform: typeof cap?.isNativePlatform === 'function' ? String(cap.isNativePlatform()) : (cap?.getPlatform?.() ?? 'n/a')
       }
 
       notify({
-        kind: 'info',
+        kind: 'error',
+        placement: 'default',
         title: `Speech bridge: ${present.hermesSpeech && present.start ? 'plugin OK' : 'plugin MISSING'}`,
         message: JSON.stringify(present)
       })
+
+      setInterimText(`Speech plugin missing (platform: ${present.platform})`)
+      setVoiceStatus('dictating')
+      window.setTimeout(() => {
+        setInterimText('')
+        setVoiceStatus('idle')
+      }, 4000)
     }
 
     if (!speech?.start) {
@@ -418,10 +480,17 @@ export function useVoiceRecorder({
       return false
     }
 
+    // Guarantee native speech state and inline visible Listening... UI BEFORE any plugin calls
+    nativeSpeechRef.current = true
+    setInterimText('Listening...')
+    setVoiceStatus('dictating')
+
     // hermex-style baseDraft capture: the draft text at the moment dictation
     // starts becomes the prefix; every partial REPLACES the draft with
     // `baseDraft + transcript` so words type live into the composer.
-    const baseDraft = (getDraftText?.() ?? '').trim()
+    const visibleDraft = (getDraftText?.() ?? '').trim()
+    const baseDraft = visibleDraft || nativeDraftRef.current
+    nativeDraftRef.current = baseDraft
     const compose = (transcript: string) => {
       const t = transcript.trim()
 
@@ -431,40 +500,72 @@ export function useVoiceRecorder({
 
       return baseDraft ? `${baseDraft} ${t}` : t
     }
+    const replaceNativeDraft = (transcript: string) => {
+      const next = compose(transcript)
+      nativeDraftRef.current = next
+      onLiveDraft?.(next)
+    }
 
-    void speech
-      .addListener?.('partial', data => {
+    const addNativeListener = (event: string, listener: (data: { text?: string; message?: string }) => void) => {
+      try {
+        const registration = speech.addListener?.(event, listener)
+        if (!registration) {
+          return
+        }
+
+        // Capacitor's generated proxy returns a Promise in a browser bundle,
+        // while the native v7 bridge returns the handle immediately. Treat
+        // both shapes identically; calling `.then` on the native handle was
+        // crashing the WebView before speech.start() could run.
+        void Promise.resolve(registration)
+          .then(handle => {
+            nativeSpeechListenersRef.current.push(() => {
+              void handle.remove()
+            })
+          })
+          .catch(() => {
+            // Listener registration is best effort; start() reports the real
+            // recognition error if the native plugin cannot run.
+          })
+      } catch {
+        // Keep the button usable even if an optional listener is unavailable.
+      }
+    }
+
+    addNativeListener('partial', data => {
         const text = (data?.text ?? '').trim()
 
         if (text) {
+          if (nativeSpeechFallbackTimerRef.current !== null) {
+            window.clearTimeout(nativeSpeechFallbackTimerRef.current)
+            nativeSpeechFallbackTimerRef.current = null
+          }
           setInterimText(text)
           onInterim?.(text)
           if (onLiveDraft) {
-            onLiveDraft(compose(text))
+            replaceNativeDraft(text)
           }
         }
       })
-      .then(handle => {
-        nativeSpeechListenersRef.current.push(() => {
-          void handle.remove()
-        })
-      })
-      .catch(() => {
-        // listener registration failed — nothing to clean up
-      })
 
-    void speech
-      .addListener?.('error', data => {
-        notifyError(new Error(data?.message ?? 'Speech recognition failed'), voiceCopy.transcriptionFailed)
+    addNativeListener('error', data => {
+        const errMsg = data?.message ?? 'Speech recognition failed'
+        notify({
+          kind: 'error',
+          placement: 'default',
+          title: voiceCopy.transcriptionFailed,
+          message: errMsg
+        })
+        setInterimText(`Speech error: ${errMsg}`)
         stopNativeSpeech()
       })
-      .catch(() => {
-        // listener registration failed — nothing to clean up
-      })
 
-    void speech
-      .addListener?.('final', data => {
+    addNativeListener('final', data => {
         const text = (data?.text ?? '').trim()
+        if (nativeSpeechFallbackTimerRef.current !== null) {
+          window.clearTimeout(nativeSpeechFallbackTimerRef.current)
+          nativeSpeechFallbackTimerRef.current = null
+        }
         nativeSpeechRef.current = false
 
         for (const off of nativeSpeechListenersRef.current) {
@@ -480,25 +581,21 @@ export function useVoiceRecorder({
           // final transcript is already typed in. Commit the final composed
           // draft once (replace, not append) to normalize trailing partials.
           if (onLiveDraft) {
-            onLiveDraft(compose(text))
+            replaceNativeDraft(text)
           } else {
             onTranscript(text)
           }
         } else {
-          notify({ kind: 'warning', title: voiceCopy.noSpeechDetected, message: voiceCopy.tryRecordingAgain })
+          notify({
+            kind: 'warning',
+            placement: 'default',
+            title: voiceCopy.noSpeechDetected,
+            message: voiceCopy.tryRecordingAgain
+          })
         }
 
         focusInput()
       })
-      .catch(() => {
-        // listener registration failed — stop cleanly below
-        nativeSpeechRef.current = false
-        setVoiceStatus('idle')
-      })
-
-    nativeSpeechRef.current = true
-    setInterimText('')
-    setVoiceStatus('dictating')
 
     // The plugin's start() can reject (e.g. on-device speech models still
     // downloading) — don't leave the UI stuck in 'dictating'. Fall back to
@@ -514,8 +611,15 @@ export function useVoiceRecorder({
           return
         }
 
-        notifyError(error, `Native speech start failed: ${error instanceof Error ? error.message : String(error)}`)
+        const errMsg = error instanceof Error ? error.message : String(error)
+        notify({
+          kind: 'error',
+          placement: 'default',
+          title: 'Native speech start failed',
+          message: errMsg
+        })
 
+        setInterimText(`Start failed: ${errMsg}`)
         nativeSpeechRef.current = false
         setVoiceStatus('idle')
 
@@ -524,23 +628,37 @@ export function useVoiceRecorder({
         }
       })
 
-    // The native start() promise can also hang (no resolve, no reject) when
-    // the plugin never gets a callback — surface that instead of dead air.
-    window.setTimeout(() => {
-      if (nativeSpeechRef.current) {
-        notify({
-          kind: 'warning',
-          title: 'Speech start timed out',
-          message: 'The native plugin did not respond within 5s.'
-        })
+    // A custom Capacitor plugin can accept the JS call yet never return a
+    // native callback. Never strand the mic in that state: after six seconds
+    // without a partial/final result, release it and use the working recorder
+    // + gateway streaming path instead.
+    nativeSpeechFallbackTimerRef.current = window.setTimeout(() => {
+      if (!nativeSpeechRef.current) {
+        return
       }
-    }, 5_000)
+
+      nativeSpeechRef.current = false
+      void speech.stop?.().catch(() => undefined)
+
+      if (onTranscribeAudio && onStreamingTranscript) {
+        setInterimText('Switching to live transcription…')
+        setVoiceStatus('idle')
+        void startStreaming()
+        return
+      }
+
+      setInterimText('Native speech did not return audio')
+      setVoiceStatus('idle')
+    }, 6_000)
 
     return true
-  }, [focusInput, getDraftText, notify, notifyError, onInterim, onLiveDraft, onStreamingTranscript, onTranscript, onTranscribeAudio, startStreaming, stopNativeSpeech, voiceCopy])
+  }, [focusInput, getDraftText, getNativeSpeechPlugin, notify, onInterim, onLiveDraft, onStreamingTranscript, onTranscript, onTranscribeAudio, startStreaming, stopNativeSpeech, voiceCopy])
 
   const dictate = () => {
-    if (recognitionRef.current || voiceStatus === 'dictating' || nativeSpeechRef.current) {
+    // A real active recognizer is toggle-to-stop. A stale React status without
+    // a live recognizer must be cleared and allowed to restart in this same
+    // tap; previously it consumed one tap and looked like a dead mic.
+    if (recognitionRef.current || nativeSpeechRef.current) {
       stopSpeechDictation()
       stopNativeSpeech()
 
@@ -554,31 +672,47 @@ export function useVoiceRecorder({
     }
 
     if (voiceStatus !== 'idle') {
-      return
+      stopSpeechDictation()
+      stopNativeSpeech()
+      setVoiceStatus('idle')
+      setInterimText('')
     }
 
     // In the Capacitor wrapper (WKWebView) webkitSpeechRecognition exists but
     // dies instantly with no result and NO permission prompt — Apple only
     // supports the Web Speech API in Safari, not WKWebView. The PWA works
     // because it runs in Safari.
+    const cap = (
+      window as unknown as {
+        Capacitor?: {
+          isNativePlatform?: () => boolean
+          getPlatform?: () => string
+          Plugins?: Record<string, unknown>
+        }
+      }
+    ).Capacitor
+
+    // This wrapper loads a remote HTTPS page, so Capacitor can report "web"
+    // even while its native bridge is present. Haptics proves the bridge is
+    // active; use it to avoid WKWebView's dead webkitSpeechRecognition path.
     const inCapacitor = Boolean(
-      (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()
+      cap?.isNativePlatform?.() ||
+        cap?.getPlatform?.() === 'ios' ||
+        cap?.getPlatform?.() === 'android' ||
+        Boolean(cap?.Plugins?.Haptics)
     )
 
     if (!inCapacitor && startSpeechDictation()) {
       return
     }
 
-    // Native app: prefer Apple's on-device SFSpeechRecognizer (HermesSpeech
-    // plugin — the same engine as the iOS keyboard dictation: free, offline,
-    // live partials). User: 'use iphone default dictation, it is pretty good
-    // in iOS 27'.
+    // Native wrapper: use Apple's SFSpeechRecognizer first so partial results
+    // replace the composer draft as the user speaks. The recorder remains the
+    // fallback only when the native bridge rejects or is unavailable.
     if (inCapacitor && startNativeSpeech()) {
       return
     }
 
-    // Fallback: stream chunks to the gateway while recording so words
-    // appear in the composer as you speak.
     if (inCapacitor && onTranscribeAudio && onStreamingTranscript) {
       void startStreaming()
 

@@ -154,6 +154,7 @@ export function ChatBar({
     isHelpHint,
     isSteerableText,
     loadIntoComposer,
+    replaceDraft,
     requestMainFocus,
     sessionIdRef,
     setComposerText,
@@ -681,7 +682,10 @@ export function ChatBar({
     onSubmit,
     onTranscribeAudio,
     sessionId,
-    setComposerText,
+    // Native speech partials must update the DOM, draft ref, and AUI state as
+    // one transaction. The lightweight setter alone left a subsequent
+    // dictation session with an empty base draft.
+    setComposerText: replaceDraft,
     getDraftText: () => draftRef.current
   })
 

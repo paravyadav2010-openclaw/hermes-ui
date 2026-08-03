@@ -356,6 +356,7 @@ export function useComposerDraft({
     isHelpHint,
     isSteerableText,
     loadIntoComposer,
+    replaceDraft: paintDraft,
     requestMainFocus,
     sessionIdRef,
     setComposerText,

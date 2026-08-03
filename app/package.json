@@ -22,6 +22,7 @@
     "@assistant-ui/react": "^0.12.28",
     "@assistant-ui/react-streamdown": "^0.1.11",
     "@audiowave/react": "^0.6.2",
+    "@capacitor/core": "^7.6.8",
     "@chenglou/pretext": "^0.0.6",
     "@codemirror/commands": "^6.10.4",
     "@codemirror/language": "^6.12.4",

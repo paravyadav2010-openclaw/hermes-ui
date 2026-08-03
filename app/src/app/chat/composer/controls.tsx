@@ -270,7 +270,11 @@ function DictationButton({
   const active = state.active || status !== 'idle'
 
   const aria =
-    status === 'recording' ? c.stopDictation : status === 'transcribing' ? c.transcribingDictation : c.voiceDictation
+    status === 'recording' || status === 'dictating'
+      ? c.stopDictation
+      : status === 'transcribing'
+        ? c.transcribingDictation
+        : c.voiceDictation
 
   return (
     <Tip label={aria}>
@@ -281,6 +285,7 @@ function DictationButton({
           'size-(--composer-control-primary-size) shrink-0 rounded-full border border-border/65 p-0',
           'bg-(--chrome-action-hover)/40 text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground',
           'data-[active=true]:bg-accent data-[active=true]:text-foreground',
+          status === 'dictating' && 'dictation-mic-ripple bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
           status === 'recording' && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
           status === 'transcribing' && 'bg-primary/10 text-primary'
         )}

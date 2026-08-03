@@ -166,17 +166,14 @@ function PlaybackWaveform({ audioElement }: { audioElement: HTMLAudioElement | n
 export function VoiceActivity({ state }: { state: VoiceActivityState }) {
   const { t } = useI18n()
 
-  if (state.status === 'idle') {
+  // Native speech types partials in the composer itself. Do not duplicate
+  // those words in the activity strip above it.
+  if (state.status === 'idle' || state.status === 'dictating') {
     return null
   }
 
   const recording = state.status === 'recording'
-  const dictating = state.status === 'dictating'
-  const title = recording
-    ? t.composer.dictating
-    : dictating
-      ? t.composer.dictating
-      : t.composer.transcribing
+  const title = recording ? t.composer.dictating : t.composer.transcribing
 
   return (
     <div
@@ -193,7 +190,7 @@ export function VoiceActivity({ state }: { state: VoiceActivityState }) {
           recording ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'
         )}
       >
-        {recording || dictating ? (
+        {recording ? (
           <Mic className={iconSize.xs} />
         ) : (
           <Loader2 className={cn('animate-spin', iconSize.xs)} />
@@ -201,18 +198,10 @@ export function VoiceActivity({ state }: { state: VoiceActivityState }) {
       </div>
 
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        {dictating && state.interimText ? (
-          // Live word-by-word dictation (PWA 9400 parity): the heard words
-          // stream here while the speaker is talking.
-          <span className="truncate text-foreground/90 italic">{state.interimText}</span>
-        ) : (
-          <span className="truncate font-medium text-foreground/85">{title}</span>
-        )}
-        {!dictating && (
-          <span className="font-mono text-[0.6875rem] text-muted-foreground/85">
-            {formatElapsed(state.elapsedSeconds)}
-          </span>
-        )}
+        <span className="truncate font-medium text-foreground/85">{title}</span>
+        <span className="font-mono text-[0.6875rem] text-muted-foreground/85">
+          {formatElapsed(state.elapsedSeconds)}
+        </span>
       </div>
 
       <VoiceLevelBars active={recording} level={state.level} />

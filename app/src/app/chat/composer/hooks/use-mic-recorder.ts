@@ -9,6 +9,10 @@ export interface MicRecorderOptions {
   silenceLevel?: number
   silenceMs?: number
   idleSilenceMs?: number
+  /** Emit audio chunks every N ms while recording (MediaRecorder timeslice). */
+  timesliceMs?: number
+  /** Called with each timeslice chunk (live streaming dictation). */
+  onChunk?: (chunk: Blob) => void
 }
 
 export interface MicRecording {
@@ -216,6 +220,9 @@ export function useMicRecorder(copy: MicRecorderErrorCopy): {
     recorder.ondataavailable = event => {
       if (event.data.size > 0) {
         chunksRef.current.push(event.data)
+        // Live streaming dictation: each timeslice chunk goes out immediately
+        // so the transcript can appear in the composer while still recording.
+        options.onChunk?.(event.data)
       }
     }
 
@@ -253,7 +260,7 @@ export function useMicRecorder(copy: MicRecorderErrorCopy): {
       resolver?.(null)
     }
 
-    recorder.start()
+    recorder.start(options.timesliceMs && options.timesliceMs > 0 ? options.timesliceMs : undefined)
     setRecording(true)
     startMeter(stream, options)
   }

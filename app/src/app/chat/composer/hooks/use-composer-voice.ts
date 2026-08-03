@@ -21,6 +21,8 @@ interface UseComposerVoiceArgs {
   disabled: boolean
   focusInput: () => void
   insertText: (text: string) => void
+  /** Space-joined append for live streaming dictation chunks. */
+  insertStreaming?: (text: string) => void
   maxRecordingSeconds: number
   onSubmit: ChatBarProps['onSubmit']
   onTranscribeAudio: ChatBarProps['onTranscribeAudio']
@@ -39,6 +41,7 @@ export function useComposerVoice({
   disabled,
   focusInput,
   insertText,
+  insertStreaming,
   maxRecordingSeconds,
   onSubmit,
   onTranscribeAudio,
@@ -52,7 +55,8 @@ export function useComposerVoice({
     focusInput,
     maxRecordingSeconds,
     onTranscript: insertText,
-    onTranscribeAudio
+    onTranscribeAudio,
+    onStreamingTranscript: text => insertStreaming?.(text)
   })
 
   const pendingResponse = () => {

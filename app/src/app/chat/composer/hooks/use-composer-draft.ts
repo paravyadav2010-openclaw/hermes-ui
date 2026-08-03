@@ -253,6 +253,18 @@ export function useComposerDraft({
     paintDraft(`${base}${sep}${text}`)
   }
 
+  // Live streaming dictation: append with a single space (not newline) so
+  // chunk transcripts read as one continuous sentence in the composer.
+  const insertStreaming = useCallback(
+    (text: string) => {
+      const base = draftRef.current
+      const sep = base && !base.endsWith(' ') && !base.endsWith('\n') ? ' ' : ''
+
+      paintDraft(`${base}${sep}${text}`)
+    },
+    [paintDraft]
+  )
+
   // insertInlineRefs mutates the editor in place (chips), so it can't go through
   // paintDraft's re-render — it mirrors the resulting plain text and refocuses.
   const insertInlineRefs = (refs: InlineRefInput[]) => {
@@ -339,6 +351,7 @@ export function useComposerDraft({
     focusInput,
     hasText,
     insertInlineRefs,
+    insertStreaming,
     insertText,
     isHelpHint,
     isSteerableText,

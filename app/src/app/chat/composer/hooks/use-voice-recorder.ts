@@ -13,6 +13,8 @@ interface VoiceRecorderOptions {
   focusInput: () => void
   onTranscript: (text: string) => void
   onInterim?: (text: string) => void
+  /** Live word-by-word streaming: append each chunk transcript with a space. */
+  onStreamingTranscript?: (text: string) => void
 }
 
 // Web Speech API recognition handle. iOS Safari/WKWebView expose it as
@@ -48,7 +50,8 @@ export function useVoiceRecorder({
   onTranscribeAudio,
   focusInput,
   onTranscript,
-  onInterim
+  onInterim,
+  onStreamingTranscript
 }: VoiceRecorderOptions) {
   const { t } = useI18n()
   const voiceCopy = t.notifications.voice
@@ -62,6 +65,8 @@ export function useVoiceRecorder({
   const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
   const speechTimeoutRef = useRef<number | null>(null)
   const clearSpeechTimeoutRef = useRef<number | null>(null)
+  const streamingRef = useRef(false)
+  const streamingChunkInFlightRef = useRef(false)
 
   const clearTimers = () => {
     if (intervalRef.current) {
@@ -117,10 +122,24 @@ export function useVoiceRecorder({
 
   const stop = useCallback(async () => {
     clearTimers()
+
+    // Streaming mode: every timeslice chunk was already transcribed and
+    // appended live — the final blob must NOT be re-transcribed (it would
+    // duplicate the words already in the composer).
+    const wasStreaming = streamingRef.current
+    streamingRef.current = false
+
     const result = await handle.stop()
 
     if (!result) {
       setVoiceStatus('idle')
+
+      return
+    }
+
+    if (wasStreaming) {
+      setVoiceStatus('idle')
+      focusInput()
 
       return
     }
@@ -159,6 +178,57 @@ export function useVoiceRecorder({
 
     void stop()
   }, [stop, stopSpeechDictation])
+
+  // Live streaming dictation (WKWebView path, 2026-08-03): MediaRecorder runs
+  // with a timeslice; each chunk is transcribed as it arrives and the words
+  // stream into the composer while the user is still talking (PWA-9400-style
+  // "types as you speak" without SpeechRecognition, which WKWebView lacks).
+  const startStreaming = useCallback(async () => {
+    if (!onTranscribeAudio || !onStreamingTranscript) {
+      return
+    }
+
+    streamingRef.current = true
+    streamingChunkInFlightRef.current = false
+
+    try {
+      await handle.start({
+        timesliceMs: 3000,
+        onChunk: async chunk => {
+          if (streamingChunkInFlightRef.current) {
+            return
+          }
+
+          streamingChunkInFlightRef.current = true
+
+          try {
+            const text = (await onTranscribeAudio(chunk)).trim()
+
+            if (text) {
+              onStreamingTranscript(text)
+              setInterimText(text)
+            }
+          } catch {
+            // A failed chunk shouldn't kill the whole dictation — the words
+            // may still come through on the next slice.
+          } finally {
+            streamingChunkInFlightRef.current = false
+          }
+        },
+        onError: error => notifyError(error, voiceCopy.recordingFailed)
+      })
+      startedAtRef.current = Date.now()
+      setElapsedSeconds(0)
+      setVoiceStatus('recording')
+      intervalRef.current = window.setInterval(() => setElapsedSeconds((Date.now() - startedAtRef.current) / 1000), 250)
+      const cap = Math.max(1, Math.min(Math.trunc(maxRecordingSeconds), 600))
+      timeoutRef.current = window.setTimeout(() => void stopRecording(), cap * 1000)
+    } catch (error) {
+      streamingRef.current = false
+      setVoiceStatus('idle')
+      notifyError(error, voiceCopy.recordingFailed)
+    }
+  }, [handle, maxRecordingSeconds, notify, onTranscribeAudio, onStreamingTranscript, stopRecording, voiceCopy])
 
   const start = useCallback(async () => {
     if (!onTranscribeAudio) {
@@ -301,6 +371,15 @@ export function useVoiceRecorder({
     )
 
     if (!inCapacitor && startSpeechDictation()) {
+      return
+    }
+
+    // Native app: stream chunks to the gateway while recording so words
+    // appear in the composer as you speak (WKWebView has no SpeechRecognition,
+    // so this is the closest PWA-9400 parity — "types as you talk").
+    if (inCapacitor && onTranscribeAudio && onStreamingTranscript) {
+      void startStreaming()
+
       return
     }
 

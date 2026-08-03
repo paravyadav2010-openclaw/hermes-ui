@@ -356,7 +356,7 @@ export function useVoiceRecorder({
     stop?: () => Promise<unknown>
     cancel?: () => Promise<unknown>
     isAvailable?: () => Promise<{ available?: boolean; authorized?: boolean }>
-    addListener?: (event: string, fn: (data: { text?: string }) => void) => Promise<{ remove: () => void }>
+    addListener?: (event: string, fn: (data: { text?: string; message?: string }) => void) => Promise<{ remove: () => void }>
   }
 
   const stopNativeSpeech = useCallback(() => {
@@ -411,6 +411,15 @@ export function useVoiceRecorder({
       })
 
     void speech
+      .addListener?.('error', data => {
+        notifyError(new Error(data?.message ?? 'Speech recognition failed'), voiceCopy.transcriptionFailed)
+        stopNativeSpeech()
+      })
+      .catch(() => {
+        // listener registration failed — nothing to clean up
+      })
+
+    void speech
       .addListener?.('final', data => {
         const text = (data?.text ?? '').trim()
         nativeSpeechRef.current = false
@@ -437,20 +446,34 @@ export function useVoiceRecorder({
         setVoiceStatus('idle')
       })
 
-    try {
-      void speech.start()
-      nativeSpeechRef.current = true
-      setInterimText('')
-      setVoiceStatus('dictating')
+    nativeSpeechRef.current = true
+    setInterimText('')
+    setVoiceStatus('dictating')
 
-      return true
-    } catch {
-      nativeSpeechRef.current = false
-      setVoiceStatus('idle')
+    // The plugin's start() can reject (e.g. on-device speech models still
+    // downloading) — don't leave the UI stuck in 'dictating'. Fall back to
+    // the gateway streaming path so the mic still works.
+    Promise.resolve(speech.start())
+      .then(() => {
+        if (nativeSpeechRef.current) {
+          setVoiceStatus('dictating')
+        }
+      })
+      .catch(() => {
+        if (!nativeSpeechRef.current) {
+          return
+        }
 
-      return false
-    }
-  }, [focusInput, notify, onInterim, onTranscript, voiceCopy])
+        nativeSpeechRef.current = false
+        setVoiceStatus('idle')
+
+        if (onTranscribeAudio && onStreamingTranscript) {
+          void startStreaming()
+        }
+      })
+
+    return true
+  }, [focusInput, notify, notifyError, onInterim, onStreamingTranscript, onTranscribeAudio, startStreaming, stopNativeSpeech, voiceCopy])
 
   const dictate = () => {
     if (recognitionRef.current || voiceStatus === 'dictating' || nativeSpeechRef.current) {

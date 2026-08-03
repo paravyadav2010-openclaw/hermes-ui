@@ -27,8 +27,11 @@ function copyViaExecCommand(text: string): boolean {
   textarea.value = text
   textarea.setAttribute('readonly', '')
   textarea.style.position = 'fixed'
+  textarea.style.top = '0'
   textarea.style.left = '-9999px'
+  textarea.style.opacity = '0'
   document.body.appendChild(textarea)
+  textarea.focus()
   textarea.select()
   textarea.setSelectionRange(0, text.length)
   let ok = false

@@ -569,13 +569,47 @@ export function createWebBridge(): Window['hermesDesktop'] {
     },
     selectPaths: async () => [],
     writeClipboard: async text => {
-      try {
-        await navigator.clipboard.writeText(text)
+      // Insecure context (phone app over HTTP tailnet IP): iOS WKWebView's
+      // navigator.clipboard.writeText can RESOLVE without writing (feedback
+      // fires, pasteboard unchanged) — so skip the async API entirely there
+      // and use the PWA 9400-proven synchronous fallback.
+      if (window.isSecureContext) {
+        try {
+          await navigator.clipboard.writeText(text)
 
-        return true
-      } catch {
-        return false
+          return true
+        } catch {
+          // Fall through to the synchronous fallback below.
+        }
       }
+
+      // PWA 9400-proven fallback: a focused, selected textarea +
+      // document.execCommand('copy') runs synchronously in the user gesture
+      // and needs no secure context. focus() BEFORE select() is required on
+      // iOS — an unfocused textarea makes execCommand return true while
+      // copying nothing.
+      const textarea = document.createElement('textarea')
+      textarea.value = text
+      textarea.setAttribute('readonly', '')
+      textarea.style.position = 'fixed'
+      textarea.style.top = '0'
+      textarea.style.left = '-9999px'
+      textarea.style.opacity = '0'
+      document.body.appendChild(textarea)
+      textarea.focus()
+      textarea.select()
+      textarea.setSelectionRange(0, text.length)
+      let ok = false
+
+      try {
+        ok = document.execCommand('copy')
+      } catch {
+        ok = false
+      }
+
+      document.body.removeChild(textarea)
+
+      return ok
     },
     saveImageFromUrl: async url => {
       const opened = window.open(url, '_blank', 'noopener')

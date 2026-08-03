@@ -132,7 +132,6 @@ import { MobileLayout } from '@/components/mobile/mobile-layout'
 import { MoreMenuContent } from '@/components/mobile/more-menu'
 import { useMobile } from '@/hooks/use-mobile'
 import { closeMobileDrawer } from '@/store/mobile'
-import './ensure-mobile-bundle'
 
 const AgentsView = lazy(async () => ({ default: (await import('./agents')).AgentsView }))
 const ArtifactsView = lazy(async () => ({ default: (await import('./artifacts')).ArtifactsView }))

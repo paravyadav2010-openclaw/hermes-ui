@@ -290,9 +290,17 @@ export function useVoiceRecorder({
       return
     }
 
-    // SpeechRecognition first — must start synchronously inside the tap
-    // gesture (iOS requires user activation for the mic).
-    if (startSpeechDictation()) {
+    // In the Capacitor wrapper (WKWebView) webkitSpeechRecognition exists but
+    // dies instantly with no result and NO permission prompt — Apple only
+    // supports the Web Speech API in Safari, not WKWebView. The PWA works
+    // because it runs in Safari. So in the native app, skip speech
+    // recognition entirely and use the reliable MediaRecorder → gateway
+    // path (which also triggers the iOS mic permission prompt).
+    const inCapacitor = Boolean(
+      (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()
+    )
+
+    if (!inCapacitor && startSpeechDictation()) {
       return
     }
 

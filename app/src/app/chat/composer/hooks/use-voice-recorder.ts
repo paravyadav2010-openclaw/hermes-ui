@@ -67,6 +67,8 @@ export function useVoiceRecorder({
   const clearSpeechTimeoutRef = useRef<number | null>(null)
   const streamingRef = useRef(false)
   const streamingChunkInFlightRef = useRef(false)
+  const nativeSpeechRef = useRef(false)
+  const nativeSpeechListenersRef = useRef<Array<() => void>>([])
 
   const clearTimers = () => {
     if (intervalRef.current) {
@@ -343,9 +345,104 @@ export function useVoiceRecorder({
     }
   }, [focusInput, notify, onInterim, onTranscript, voiceCopy])
 
+  // Apple's on-device SFSpeechRecognizer via the native HermesSpeech plugin
+  // (Capacitor). Same engine as the iOS keyboard dictation — live partials,
+  // offline, no gateway round trip. The plugin emits `partial` (while
+  // talking) and `final` (committed) events.
+  const stopNativeSpeech = useCallback(() => {
+    if (!nativeSpeechRef.current) {
+      return
+    }
+
+    nativeSpeechRef.current = false
+
+    for (const off of nativeSpeechListenersRef.current) {
+      off()
+    }
+
+    nativeSpeechListenersRef.current = []
+
+    try {
+      void (window as unknown as { HermesSpeech?: { stop?: () => Promise<unknown> } }).HermesSpeech?.stop?.()
+    } catch {
+      // best effort
+    }
+
+    setInterimText('')
+    setVoiceStatus('idle')
+  }, [])
+
+  const startNativeSpeech = useCallback((): boolean => {
+    const speech = (window as unknown as { HermesSpeech?: { start?: () => Promise<unknown>; addListener?: (event: string, fn: (data: { text?: string }) => void) => Promise<{ remove: () => void }> } }).HermesSpeech
+
+    if (!speech?.start) {
+      return false
+    }
+
+    void speech
+      .addListener?.('partial', data => {
+        const text = (data?.text ?? '').trim()
+
+        if (text) {
+          setInterimText(text)
+          onInterim?.(text)
+        }
+      })
+      .then(handle => {
+        nativeSpeechListenersRef.current.push(() => {
+          void handle.remove()
+        })
+      })
+      .catch(() => {
+        // listener registration failed — nothing to clean up
+      })
+
+    void speech
+      .addListener?.('final', data => {
+        const text = (data?.text ?? '').trim()
+        nativeSpeechRef.current = false
+
+        for (const off of nativeSpeechListenersRef.current) {
+          off()
+        }
+
+        nativeSpeechListenersRef.current = []
+        setInterimText('')
+        setVoiceStatus('idle')
+
+        if (text) {
+          onTranscript(text)
+        } else {
+          notify({ kind: 'warning', title: voiceCopy.noSpeechDetected, message: voiceCopy.tryRecordingAgain })
+        }
+
+        focusInput()
+      })
+      .catch(() => {
+        // listener registration failed — stop cleanly below
+        nativeSpeechRef.current = false
+        setVoiceStatus('idle')
+      })
+
+    try {
+      void speech.start()
+      nativeSpeechRef.current = true
+      setInterimText('')
+      setVoiceStatus('dictating')
+
+      return true
+    } catch {
+      nativeSpeechRef.current = false
+      setVoiceStatus('idle')
+
+      return false
+    }
+  }, [focusInput, notify, onInterim, onTranscript, voiceCopy])
+
   const dictate = () => {
-    if (recognitionRef.current || voiceStatus === 'dictating') {
+    if (recognitionRef.current || voiceStatus === 'dictating' || nativeSpeechRef.current) {
       stopSpeechDictation()
+      stopNativeSpeech()
 
       return
     }
@@ -363,9 +460,7 @@ export function useVoiceRecorder({
     // In the Capacitor wrapper (WKWebView) webkitSpeechRecognition exists but
     // dies instantly with no result and NO permission prompt — Apple only
     // supports the Web Speech API in Safari, not WKWebView. The PWA works
-    // because it runs in Safari. So in the native app, skip speech
-    // recognition entirely and use the reliable MediaRecorder → gateway
-    // path (which also triggers the iOS mic permission prompt).
+    // because it runs in Safari.
     const inCapacitor = Boolean(
       (window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.()
     )
@@ -374,9 +469,16 @@ export function useVoiceRecorder({
       return
     }
 
-    // Native app: stream chunks to the gateway while recording so words
-    // appear in the composer as you speak (WKWebView has no SpeechRecognition,
-    // so this is the closest PWA-9400 parity — "types as you talk").
+    // Native app: prefer Apple's on-device SFSpeechRecognizer (HermesSpeech
+    // plugin — the same engine as the iOS keyboard dictation: free, offline,
+    // live partials). User: 'use iphone default dictation, it is pretty good
+    // in iOS 27'.
+    if (inCapacitor && startNativeSpeech()) {
+      return
+    }
+
+    // Fallback: stream chunks to the gateway while recording so words
+    // appear in the composer as you speak.
     if (inCapacitor && onTranscribeAudio && onStreamingTranscript) {
       void startStreaming()
 

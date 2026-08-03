@@ -152,7 +152,7 @@ export function GatewayStatusRing() {
             />
           </svg>
         </span>
-        <span className="pointer-events-none absolute text-[11px] font-bold leading-none text-(--ui-text-primary)">
+        <span className="pointer-events-none absolute text-[11px] font-bold leading-none text-[color:var(--ui-text-primary)]">
           {label}
         </span>
       </button>
@@ -230,7 +230,7 @@ export function GatewayStatusRing() {
             {backendVersion ? (
               <div className="border-b border-(--ui-stroke-tertiary)/40 px-3 py-2">
                 <button
-                  className="flex w-full items-center justify-center gap-2 rounded-full border border-(--ui-stroke-secondary)/70 bg-(--dt-card) px-3 py-1.5 text-xs font-medium text-(--ui-text-primary) shadow-sm tap-highlight-transparent"
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-(--ui-stroke-secondary)/70 bg-(--dt-card) px-3 py-1.5 text-xs font-medium text-[color:var(--ui-text-primary)] shadow-sm tap-highlight-transparent"
                   onClick={() => {
                     triggerHaptic('selection')
                     setOpen(false)

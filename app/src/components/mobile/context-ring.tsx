@@ -114,7 +114,7 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
             />
           </svg>
         </span>
-        <span className="pointer-events-none absolute text-[11px] font-bold leading-none text-(--ui-text-primary)">{pct}</span>
+        <span className="pointer-events-none absolute text-[11px] font-bold leading-none text-[color:var(--ui-text-primary)]">{pct}</span>
       </button>
 
       {open && createPortal(

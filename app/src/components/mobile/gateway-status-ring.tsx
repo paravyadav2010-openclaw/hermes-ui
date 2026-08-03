@@ -225,27 +225,27 @@ export function GatewayStatusRing() {
               </span>
             </button>
             {/* Backend version — the old status bar's backend item: SAME
-                binding (openUpdateOverlayFor('backend')), just relocated. */}
+                binding (openUpdateOverlayFor('backend')), solid pill-style
+                button with the version number, labeled "Update". */}
             {backendVersion ? (
-              <button
-                className="flex w-full items-center justify-between gap-2 border-b border-(--ui-stroke-tertiary)/40 px-3 py-1.5 text-left text-[0.6875rem] text-(--ui-text-secondary) tabular-nums tap-highlight-transparent"
-                onClick={() => {
-                  triggerHaptic('selection')
-                  setOpen(false)
-                  openUpdateOverlayFor('backend')
-                }}
-                type="button"
-              >
-                <span className="flex items-center gap-1.5">
+              <div className="border-b border-(--ui-stroke-tertiary)/40 px-3 py-2">
+                <button
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-(--ui-stroke-secondary)/70 bg-(--ui-bg-elevated) px-3 py-1.5 text-xs font-medium text-foreground shadow-sm tap-highlight-transparent"
+                  onClick={() => {
+                    triggerHaptic('selection')
+                    setOpen(false)
+                    openUpdateOverlayFor('backend')
+                  }}
+                  type="button"
+                >
                   {backendApplying ? (
-                    <Loader2 className="size-3 animate-spin" />
+                    <Loader2 className="size-3.5 animate-spin" />
                   ) : (
-                    <Hash className="size-3" />
+                    <Hash className="size-3.5" />
                   )}
-                  <span>{backendApplying ? 'backend update' : `backend ${String(backendVersion).slice(0, 7)}`}</span>
-                </span>
-                <Codicon name="chevron-right" size="0.625rem" className="opacity-50" />
-              </button>
+                  <span className="tabular-nums">Update · {String(backendVersion).slice(0, 7)}</span>
+                </button>
+              </div>
             ) : null}
             {/* Same popover as the desktop gateway indicator — same info, same
                 live data (log tail polls while open, platforms from the

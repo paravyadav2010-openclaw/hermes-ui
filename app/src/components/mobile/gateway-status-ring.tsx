@@ -9,7 +9,7 @@ import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
 import { AGENTS_ROUTE } from '@/app/routes'
 import { Codicon } from '@/components/ui/codicon'
 import { triggerHaptic } from '@/lib/haptics'
-import { Hash, Loader2 } from '@/lib/icons'
+import { Loader2 } from '@/lib/icons'
 import { LiveDuration } from '@/lib/statusbar'
 import { setSessionYolo } from '@/lib/yolo-session'
 import {
@@ -152,7 +152,7 @@ export function GatewayStatusRing() {
             />
           </svg>
         </span>
-        <span className="pointer-events-none absolute text-[11px] font-bold leading-none text-(--ui-text-primary) drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
+        <span className="pointer-events-none absolute text-[11px] font-bold leading-none text-(--ui-text-primary)">
           {label}
         </span>
       </button>
@@ -230,7 +230,7 @@ export function GatewayStatusRing() {
             {backendVersion ? (
               <div className="border-b border-(--ui-stroke-tertiary)/40 px-3 py-2">
                 <button
-                  className="flex w-full items-center justify-center gap-2 rounded-full border border-(--ui-stroke-secondary)/70 bg-(--ui-bg-elevated) px-3 py-1.5 text-xs font-medium text-foreground shadow-sm tap-highlight-transparent"
+                  className="flex w-full items-center justify-center gap-2 rounded-full border border-(--ui-stroke-secondary)/70 bg-(--dt-card) px-3 py-1.5 text-xs font-medium text-(--ui-text-primary) shadow-sm tap-highlight-transparent"
                   onClick={() => {
                     triggerHaptic('selection')
                     setOpen(false)
@@ -240,9 +240,7 @@ export function GatewayStatusRing() {
                 >
                   {backendApplying ? (
                     <Loader2 className="size-3.5 animate-spin" />
-                  ) : (
-                    <Hash className="size-3.5" />
-                  )}
+                  ) : null}
                   <span className="tabular-nums">Update · {String(backendVersion).slice(0, 7)}</span>
                 </button>
               </div>

@@ -14,13 +14,59 @@ type CopyButtonAppearance = 'button' | 'icon' | 'inline' | 'menu-item' | 'contex
 type CopyStatus = 'copied' | 'error' | 'idle'
 const COPIED_RESET_MS = 1_500
 
+/**
+ * execCommand('copy') fallback — the PWA 9400-proven path for iOS WKWebView
+ * over HTTP (insecure context). navigator.clipboard.writeText can RESOLVE
+ * without writing there (feedback fires, pasteboard unchanged), while
+ * execCommand runs synchronously inside the user gesture and needs no secure
+ * context. Runs on every fallback, not just touch, so desktop is unchanged
+ * (its writeText path succeeds first).
+ */
+function copyViaExecCommand(text: string): boolean {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.setAttribute('readonly', '')
+  textarea.style.position = 'fixed'
+  textarea.style.left = '-9999px'
+  document.body.appendChild(textarea)
+  textarea.select()
+  textarea.setSelectionRange(0, text.length)
+  let ok = false
+
+  try {
+    ok = document.execCommand('copy')
+  } catch {
+    ok = false
+  }
+
+  document.body.removeChild(textarea)
+
+  return ok
+}
+
 export async function writeClipboardText(text: string) {
   if (!text) {
     return
   }
 
   if (window.hermesDesktop?.writeClipboard) {
-    await window.hermesDesktop.writeClipboard(text)
+    try {
+      await window.hermesDesktop.writeClipboard(text)
+
+      return
+    } catch {
+      // Electron IPC failed — fall through to the web paths.
+    }
+  }
+
+  // Insecure context (phone app over HTTP tailnet IP): the async Clipboard
+  // API is unreliable on iOS WKWebView — it can resolve without writing.
+  // execCommand is the only path that reliably lands the copy, so take it
+  // FIRST here instead of pretending writeText succeeded.
+  if (!window.isSecureContext) {
+    if (!copyViaExecCommand(text)) {
+      throw new Error('Clipboard API is unavailable')
+    }
 
     return
   }
@@ -31,7 +77,9 @@ export async function writeClipboardText(text: string) {
     return
   }
 
-  throw new Error('Clipboard API is unavailable')
+  if (!copyViaExecCommand(text)) {
+    throw new Error('Clipboard API is unavailable')
+  }
 }
 
 export interface CopyButtonProps {

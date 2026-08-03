@@ -71,6 +71,9 @@ export function useComposerSubmit({
   setComposerText,
   stashAt
 }: UseComposerSubmitArgs) {
+  // Double-submit guard timestamp (see submitDraft).
+  const lastSubmitAtRef = useRef(0)
+
   // Shared send primitive: fire onSubmit, and if the gateway rejects (accepted
   // === false) or throws, re-load + re-stash the draft so the words survive.
   const dispatchSubmit = (text: string, attachments?: ComposerAttachment[]) => {
@@ -107,6 +110,19 @@ export function useComposerSubmit({
     if (disabled) {
       return
     }
+
+    // Double-submit guard (user: 'disable double click Send on Composer'):
+    // the Send button is type=submit, so a double-click fires onSubmit twice
+    // in the same tick — with a busy agent that queues the SAME prompt twice
+    // (queueCurrentDraft has no dedupe). Ignore submits within 400ms of the
+    // previous one; a human can't legitimately compose a new message faster.
+    const now = Date.now()
+
+    if (now - lastSubmitAtRef.current < 400) {
+      return
+    }
+
+    lastSubmitAtRef.current = now
 
     // Source the text from the DOM editor, not React state. The AUI composer
     // state (`draft`) and the derived `hasComposerPayload` lag the DOM by a

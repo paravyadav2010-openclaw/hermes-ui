@@ -59,10 +59,12 @@ export interface ChatBarProps {
   onTranscribeAudio?: (audio: Blob) => Promise<string>
 }
 
-export type VoiceStatus = 'idle' | 'recording' | 'transcribing'
+export type VoiceStatus = 'idle' | 'recording' | 'transcribing' | 'dictating'
 
 export interface VoiceActivityState {
   elapsedSeconds: number
+  /** Live word-by-word transcript while SpeechRecognition is dictating. */
+  interimText: string
   level: number
   status: VoiceStatus
 }

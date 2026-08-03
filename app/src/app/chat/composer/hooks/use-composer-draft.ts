@@ -133,6 +133,13 @@ export function useComposerDraft({
   )
 
   useEffect(() => {
+    // Only auto-focus on desktop. On the phone the keyboard must open ONLY
+    // when the user taps the input (user: 'when I open the app it opens the
+    // keyboard first because text input is active — disable it').
+    if (typeof window !== 'undefined' && window.matchMedia?.('(hover: none) and (pointer: coarse)')?.matches) {
+      return
+    }
+
     if (!inputDisabled) {
       focusInput()
     }

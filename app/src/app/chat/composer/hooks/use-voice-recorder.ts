@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useI18n } from '@/i18n'
 import { notify, notifyError } from '@/store/notifications'
@@ -12,22 +12,56 @@ interface VoiceRecorderOptions {
   onTranscribeAudio?: (audio: Blob) => Promise<string>
   focusInput: () => void
   onTranscript: (text: string) => void
+  onInterim?: (text: string) => void
+}
+
+// Web Speech API recognition handle. iOS Safari/WKWebView expose it as
+// webkitSpeechRecognition; Chrome/Firefox ship the unprefixed form.
+interface SpeechRecognitionLike {
+  lang: string
+  interimResults: boolean
+  continuous: boolean
+  maxAlternatives: number
+  start(): void
+  stop(): void
+  abort(): void
+  onresult: ((event: { results: ArrayLike<{ isFinal: boolean; [index: number]: { transcript: string } }> }) => void) | null
+  onerror: (() => void) | null
+  onend: (() => void) | null
+}
+
+interface SpeechRecognitionWindow {
+  SpeechRecognition?: new () => SpeechRecognitionLike
+  webkitSpeechRecognition?: new () => SpeechRecognitionLike
+}
+
+const SPEECH_TIMEOUT_MS = 15_000
+
+function speechRecognitionAvailable(): boolean {
+  const w = window as unknown as SpeechRecognitionWindow
+
+  return Boolean(w.SpeechRecognition || w.webkitSpeechRecognition)
 }
 
 export function useVoiceRecorder({
   maxRecordingSeconds,
   onTranscribeAudio,
   focusInput,
-  onTranscript
+  onTranscript,
+  onInterim
 }: VoiceRecorderOptions) {
   const { t } = useI18n()
   const voiceCopy = t.notifications.voice
   const { handle, level, recording } = useMicRecorder(voiceCopy)
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>('idle')
   const [elapsedSeconds, setElapsedSeconds] = useState(0)
+  const [interimText, setInterimText] = useState('')
   const startedAtRef = useRef(0)
   const intervalRef = useRef<number | null>(null)
   const timeoutRef = useRef<number | null>(null)
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null)
+  const speechTimeoutRef = useRef<number | null>(null)
+  const clearSpeechTimeoutRef = useRef<number | null>(null)
 
   const clearTimers = () => {
     if (intervalRef.current) {
@@ -39,11 +73,49 @@ export function useVoiceRecorder({
       window.clearTimeout(timeoutRef.current)
       timeoutRef.current = null
     }
+
+    if (speechTimeoutRef.current) {
+      window.clearTimeout(speechTimeoutRef.current)
+      speechTimeoutRef.current = null
+    }
+
+    if (clearSpeechTimeoutRef.current) {
+      window.clearTimeout(clearSpeechTimeoutRef.current)
+      clearSpeechTimeoutRef.current = null
+    }
   }
 
   useEffect(() => () => clearTimers(), [])
 
-  const stop = async () => {
+  // Live dictation (PWA 9400 parity, 2026-08-03): when the Web Speech API is
+  // available, the mic button drives SpeechRecognition directly with
+  // interimResults=true so words stream into the composer as they're heard —
+  // no record-then-transcribe round trip. Falls back to MediaRecorder →
+  // gateway transcription when speech recognition is unavailable (and to
+  // keyboard focus when no mic API exists at all, e.g. plain HTTP).
+  const stopSpeechDictation = useCallback(() => {
+    if (speechTimeoutRef.current !== null) {
+      window.clearTimeout(speechTimeoutRef.current)
+      speechTimeoutRef.current = null
+    }
+
+    if (clearSpeechTimeoutRef.current !== null) {
+      window.clearTimeout(clearSpeechTimeoutRef.current)
+      clearSpeechTimeoutRef.current = null
+    }
+
+    try {
+      recognitionRef.current?.abort()
+    } catch {
+      // already stopped
+    }
+
+    recognitionRef.current = null
+    setInterimText('')
+    setVoiceStatus('idle')
+  }, [])
+
+  const stop = useCallback(async () => {
     clearTimers()
     const result = await handle.stop()
 
@@ -60,6 +132,7 @@ export function useVoiceRecorder({
     }
 
     setVoiceStatus('transcribing')
+    setInterimText('')
 
     try {
       const transcript = (await onTranscribeAudio(result.audio)).trim()
@@ -75,9 +148,19 @@ export function useVoiceRecorder({
       setVoiceStatus('idle')
       focusInput()
     }
-  }
+  }, [clearTimers, focusInput, handle, onTranscribeAudio, onTranscript, voiceCopy])
 
-  const start = async () => {
+  const stopRecording = useCallback(() => {
+    if (recognitionRef.current) {
+      stopSpeechDictation()
+
+      return
+    }
+
+    void stop()
+  }, [stop, stopSpeechDictation])
+
+  const start = useCallback(async () => {
     if (!onTranscribeAudio) {
       notify({ kind: 'warning', title: voiceCopy.unavailable, message: voiceCopy.transcriptionUnavailable })
 
@@ -91,23 +174,142 @@ export function useVoiceRecorder({
       setVoiceStatus('recording')
       intervalRef.current = window.setInterval(() => setElapsedSeconds((Date.now() - startedAtRef.current) / 1000), 250)
       const cap = Math.max(1, Math.min(Math.trunc(maxRecordingSeconds), 600))
-      timeoutRef.current = window.setTimeout(() => void stop(), cap * 1000)
+      timeoutRef.current = window.setTimeout(() => void stopRecording(), cap * 1000)
     } catch (error) {
       setVoiceStatus('idle')
       notifyError(error, voiceCopy.recordingFailed)
     }
-  }
+  }, [handle, maxRecordingSeconds, notify, onTranscribeAudio, stopRecording, voiceCopy])
+
+  const startSpeechDictation = useCallback(() => {
+    const w = window as unknown as SpeechRecognitionWindow
+    const Ctor = w.SpeechRecognition || w.webkitSpeechRecognition
+
+    if (!Ctor) {
+      return false
+    }
+
+    const recognition = new Ctor()
+    recognition.lang = 'en-US'
+    recognition.interimResults = true
+    recognition.continuous = false
+    recognition.maxAlternatives = 1
+
+    const finish = (text: string) => {
+      if (speechTimeoutRef.current !== null) {
+        window.clearTimeout(speechTimeoutRef.current)
+        speechTimeoutRef.current = null
+      }
+
+      if (clearSpeechTimeoutRef.current !== null) {
+        window.clearTimeout(clearSpeechTimeoutRef.current)
+        clearSpeechTimeoutRef.current = null
+      }
+
+      setInterimText(text || '')
+      setVoiceStatus('idle')
+
+      try {
+        recognition.abort()
+      } catch {
+        // already done
+      }
+
+      recognitionRef.current = null
+
+      if (text) {
+        onTranscript(text)
+      } else {
+        notify({ kind: 'warning', title: voiceCopy.noSpeechDetected, message: voiceCopy.tryRecordingAgain })
+      }
+
+      focusInput()
+    }
+
+    recognition.onresult = event => {
+      const result = event.results[event.results.length - 1]
+      const transcript = (result?.[0]?.transcript ?? '').trim()
+
+      if (result?.isFinal) {
+        finish(transcript)
+      } else {
+        setInterimText(transcript)
+        onInterim?.(transcript)
+
+        // Safety net: if the engine never sends a final result (e.g. a long
+        // pause), commit what we heard and stop.
+        if (speechTimeoutRef.current !== null) {
+          window.clearTimeout(speechTimeoutRef.current)
+        }
+
+        speechTimeoutRef.current = window.setTimeout(() => finish(transcript), 3_000)
+      }
+    }
+
+    recognition.onerror = () => finish('')
+    recognition.onend = () => {
+      // If onresult fired, finish() already handled it; otherwise the engine
+      // ended without a result (silence) — treat as no speech.
+      if (recognitionRef.current === recognition) {
+        finish('')
+      }
+    }
+
+    try {
+      recognition.start()
+      recognitionRef.current = recognition
+      setInterimText('')
+      setVoiceStatus('dictating')
+      clearSpeechTimeoutRef.current = window.setTimeout(() => {
+        // Whole-dictation cap, mirroring the PWA's 15s timeout.
+        finish('')
+      }, SPEECH_TIMEOUT_MS)
+
+      return true
+    } catch {
+      setVoiceStatus('idle')
+
+      return false
+    }
+  }, [focusInput, notify, onInterim, onTranscript, voiceCopy])
 
   const dictate = () => {
-    if (recording) {
-      void stop()
-    } else if (voiceStatus === 'idle') {
-      void start()
+    if (recognitionRef.current || voiceStatus === 'dictating') {
+      stopSpeechDictation()
+
+      return
     }
+
+    if (recording) {
+      void stopRecording()
+
+      return
+    }
+
+    if (voiceStatus !== 'idle') {
+      return
+    }
+
+    // SpeechRecognition first — must start synchronously inside the tap
+    // gesture (iOS requires user activation for the mic).
+    if (startSpeechDictation()) {
+      return
+    }
+
+    // Fallback: record-then-transcribe via the gateway.
+    if (onTranscribeAudio) {
+      void start()
+
+      return
+    }
+
+    // No mic API at all (plain HTTP) — just focus the keyboard.
+    focusInput()
   }
 
   const voiceActivityState: VoiceActivityState = {
     elapsedSeconds,
+    interimText,
     level,
     status: voiceStatus
   }

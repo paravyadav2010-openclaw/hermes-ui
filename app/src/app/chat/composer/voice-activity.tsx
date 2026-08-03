@@ -171,7 +171,12 @@ export function VoiceActivity({ state }: { state: VoiceActivityState }) {
   }
 
   const recording = state.status === 'recording'
-  const title = recording ? t.composer.dictating : t.composer.transcribing
+  const dictating = state.status === 'dictating'
+  const title = recording
+    ? t.composer.dictating
+    : dictating
+      ? t.composer.dictating
+      : t.composer.transcribing
 
   return (
     <div
@@ -188,14 +193,26 @@ export function VoiceActivity({ state }: { state: VoiceActivityState }) {
           recording ? 'bg-primary/15 text-primary' : 'bg-primary/10 text-primary'
         )}
       >
-        {recording ? <Mic className={iconSize.xs} /> : <Loader2 className={cn('animate-spin', iconSize.xs)} />}
+        {recording || dictating ? (
+          <Mic className={iconSize.xs} />
+        ) : (
+          <Loader2 className={cn('animate-spin', iconSize.xs)} />
+        )}
       </div>
 
       <div className="flex min-w-0 flex-1 items-center gap-2">
-        <span className="truncate font-medium text-foreground/85">{title}</span>
-        <span className="font-mono text-[0.6875rem] text-muted-foreground/85">
-          {formatElapsed(state.elapsedSeconds)}
-        </span>
+        {dictating && state.interimText ? (
+          // Live word-by-word dictation (PWA 9400 parity): the heard words
+          // stream here while the speaker is talking.
+          <span className="truncate text-foreground/90 italic">{state.interimText}</span>
+        ) : (
+          <span className="truncate font-medium text-foreground/85">{title}</span>
+        )}
+        {!dictating && (
+          <span className="font-mono text-[0.6875rem] text-muted-foreground/85">
+            {formatElapsed(state.elapsedSeconds)}
+          </span>
+        )}
       </div>
 
       <VoiceLevelBars active={recording} level={state.level} />

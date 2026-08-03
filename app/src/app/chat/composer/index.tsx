@@ -128,8 +128,6 @@ export function ChatBar({
   // engine writes it — an explicit shared handle, not a back-reference.
   const queueEditRef = useRef<QueueEditState | null>(null)
   const composingRef = useRef(false) // true during IME composition (CJK input)
-  const lastTapRef = useRef(0) // double-tap detector (mobile send)
-  const tapCountRef = useRef(0) // track taps within 400ms window
 
   const { availableThemes, themeName } = useTheme()
   const at = useAtCompletions({ gateway: gateway ?? null, sessionId: sessionId ?? null, cwd: cwd ?? null })
@@ -764,24 +762,6 @@ export function ChatBar({
         onKeyUp={handleEditorKeyUp}
         onMouseUp={refreshTrigger}
         onPaste={handlePaste}
-        onTouchEnd={event => {
-          if (!isMobile) return
-          // Don't preventDefault — let the tap position cursor normally.
-          tapCountRef.current += 1
-          if (tapCountRef.current >= 2) {
-            event.preventDefault() // only prevent on actual submit
-            event.stopPropagation()
-            if (editorRef.current) flushEditorToDraft(editorRef.current)
-            triggerHaptic('submit')
-            submitDraft()
-            tapCountRef.current = 0
-            return
-          }
-          clearTimeout(lastTapRef.current as unknown as number)
-          lastTapRef.current = window.setTimeout(() => {
-            tapCountRef.current = 0
-          }, 500) as unknown as number
-        }}
         ref={editorRef}
         role="textbox"
         spellCheck={false}

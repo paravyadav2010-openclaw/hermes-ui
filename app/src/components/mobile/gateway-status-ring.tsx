@@ -5,7 +5,9 @@ import { createPortal } from 'react-dom'
 import { GatewayMenuPanel } from '@/app/shell/gateway-menu-panel'
 import { useStatusSnapshot } from '@/app/shell/hooks/use-status-snapshot'
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
+import { Codicon } from '@/components/ui/codicon'
 import { triggerHaptic } from '@/lib/haptics'
+import { Loader2 } from '@/lib/icons'
 import { LiveDuration } from '@/lib/statusbar'
 import { setSessionYolo } from '@/lib/yolo-session'
 import {
@@ -17,6 +19,8 @@ import {
   $yoloActive,
   setYoloActive
 } from '@/store/session'
+import { $subagentsBySession, activeSubagentCount, failedSubagentCount } from '@/store/subagents'
+import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
 import { ZapFilled } from '@/lib/icons'
 
@@ -44,6 +48,8 @@ function stateArc(state: string, inferenceReady: boolean): { color: string; pct:
 }
 
 export function GatewayStatusRing() {
+  const { t } = useI18n()
+  const copy = t.agents
   const gatewayState = useStore($gatewayState)
   const { requestGateway } = useGatewayRequest()
   const { inferenceStatus, statusSnapshot } = useStatusSnapshot(gatewayState, requestGateway)
@@ -53,6 +59,18 @@ export function GatewayStatusRing() {
   const busy = useStore($busy)
   const sessionStartedAt = useStore($sessionStartedAt)
   const turnStartedAt = useStore($turnStartedAt)
+  const subagentsBySession = useStore($subagentsBySession)
+
+  // Same aggregation as the desktop status bar's agents item: running/failed
+  // subagent counts across every session.
+  const subagentsRunning = Object.values(subagentsBySession).reduce(
+    (sum, items) => sum + activeSubagentCount(items),
+    0
+  )
+  const subagentsFailed = Object.values(subagentsBySession).reduce(
+    (sum, items) => sum + failedSubagentCount(items),
+    0
+  )
 
   const toggleYolo = async () => {
     const next = !yoloActive
@@ -163,6 +181,24 @@ export function GatewayStatusRing() {
                   </span>
                 ) : null}
                 {sessionStartedAt ? <LiveDuration since={sessionStartedAt} /> : null}
+              </span>
+            </div>
+            {/* Agents — the old status bar's agents item (subagents running /
+                failed counts), same aggregation as the desktop status bar. */}
+            <div className="flex items-center justify-between gap-2 border-b border-(--ui-stroke-tertiary)/40 px-3 py-1.5 text-[0.6875rem] text-(--ui-text-secondary)">
+              <span className="flex items-center gap-1.5">
+                {subagentsFailed > 0 ? (
+                  <Codicon name="error" size="0.75rem" className="text-destructive" />
+                ) : subagentsRunning > 0 ? (
+                  <Loader2 className="size-3 animate-spin" />
+                ) : (
+                  <Codicon name="hubot" size="0.75rem" />
+                )}
+                <span>{copy.title}</span>
+              </span>
+              <span className="flex items-center gap-2 tabular-nums">
+                {subagentsRunning > 0 ? <span>{copy.running}: {subagentsRunning}</span> : null}
+                {subagentsFailed > 0 ? <span className="text-destructive">{copy.failed}: {subagentsFailed}</span> : null}
               </span>
             </div>
             {/* Same popover as the desktop gateway indicator — same info, same

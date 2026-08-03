@@ -491,6 +491,20 @@ export function useVoiceRecorder({
     const visibleDraft = (getDraftText?.() ?? '').trim()
     const baseDraft = visibleDraft || nativeDraftRef.current
     nativeDraftRef.current = baseDraft
+    // TEMP-INSTRUMENT (2026-08-04 finch:work, HANDOFF-2026-08-03.md:77-82):
+    // overwrite relapse — log draft capture ordering so we can see WHICH
+    // source is empty/stale when dictation starts. Remove after diagnosis.
+    console.log(
+      '[dict-dbg] startNativeSpeech capture:',
+      JSON.stringify({
+        visibleDraft,
+        baseDraft,
+        nativeDraftRef_before: baseDraft,
+        draftRefNow: getDraftText?.() ?? '',
+        status: 'dictating',
+        at: new Date().toISOString()
+      })
+    )
     const compose = (transcript: string) => {
       const t = transcript.trim()
 
@@ -543,6 +557,21 @@ export function useVoiceRecorder({
           setInterimText(text)
           onInterim?.(text)
           if (onLiveDraft) {
+            // TEMP-INSTRUMENT (2026-08-04 finch:work): partial event ordering
+            // — what text arrived, what we composed, what the live draft is.
+            console.log(
+              '[dict-dbg] partial event:',
+              JSON.stringify({
+                text,
+                composed: (() => {
+                  const t = text.trim()
+                  return baseDraft ? `${baseDraft} ${t}` : t
+                })(),
+                nativeDraftRef_now: nativeDraftRef.current,
+                visibleNow: getDraftText?.() ?? '',
+                at: new Date().toISOString()
+              })
+            )
             replaceNativeDraft(text)
           }
         }
@@ -581,6 +610,21 @@ export function useVoiceRecorder({
           // final transcript is already typed in. Commit the final composed
           // draft once (replace, not append) to normalize trailing partials.
           if (onLiveDraft) {
+            // TEMP-INSTRUMENT (2026-08-04 finch:work): final event ordering —
+            // the committed text and the draft state at commit time.
+            console.log(
+              '[dict-dbg] final event:',
+              JSON.stringify({
+                text,
+                composed: (() => {
+                  const t = text.trim()
+                  return baseDraft ? `${baseDraft} ${t}` : t
+                })(),
+                nativeDraftRef_before: nativeDraftRef.current,
+                visibleNow: getDraftText?.() ?? '',
+                at: new Date().toISOString()
+              })
+            )
             replaceNativeDraft(text)
           } else {
             onTranscript(text)

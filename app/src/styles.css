@@ -1953,8 +1953,11 @@ text-* variant utilities. */ .btn-arc {
     /* The chat bottom-fade gradient must stay on the chat — it must NOT show
        through the composer surface, pills, or rings. The desktop glass fill
        is translucent (92%); on the phone make it fully opaque so the fade
-       reads as chat-only. */
-    --composer-fill: var(--dt-card) !important;
+       reads as chat-only. And it must match the fade's END color
+       (--dt-background): the fade blends chat into the background, so if the
+       composer fill were a different color (--dt-card), its box would be a
+       hard-edged shape stopping the blend. Same color = seamless. */
+    --composer-fill: var(--dt-background) !important;
     /* Neutralise the JSX `-translate-x-1/2` centring utility. Tailwind v4
        uses the separate `translate` property (NOT transform), so resetting
        transform is not enough — and lightningcss folds `translate: none`
@@ -2018,9 +2021,18 @@ text-* variant utilities. */ .btn-arc {
   }
   [data-slot='composer-surface'] {
     overflow: hidden !important;
+    /* The pill must NOT have a hard border/shadow edge — the chat bottom-fade
+       blends right INTO the composer box; a visible outline stops the blend
+       and reads as a hard seam where the fade ends. Borderless on mobile. */
+    border-color: transparent !important;
+    box-shadow: none !important;
     /* 44px (2.75rem) primary buttons + 2 × 5px surface pad = 54px. Any less
        crops the circular send/mic bottoms inside the pill. */
     min-height: 3.375rem !important;
+  }
+  .composer-fallback-surface {
+    border-color: transparent !important;
+    box-shadow: none !important;
   }
   [data-slot='composer-fade'] {
     overflow: hidden !important;

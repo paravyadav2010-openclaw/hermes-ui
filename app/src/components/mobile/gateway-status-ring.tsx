@@ -49,7 +49,7 @@ export function GatewayStatusRing() {
         aria-label="Gateway status"
         className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full p-0 tap-highlight-transparent"
         onClick={() => {
-          triggerHaptic('selection')
+          triggerHaptic(open ? 'close' : 'open')
           setOpen(o => !o)
         }}
         type="button"

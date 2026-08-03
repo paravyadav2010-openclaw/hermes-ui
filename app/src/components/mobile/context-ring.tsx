@@ -56,6 +56,7 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
   const toggle = () => {
     const next = !open
     setOpen(next)
+    triggerHaptic(next ? 'open' : 'close')
 
     if (next && !breakdown && !loading && sessionId) {
       setLoading(true)
@@ -109,7 +110,7 @@ export function ContextRing({ sessionId, onCompress }: { sessionId: string | nul
             />
           </svg>
         </span>
-        <span className="pointer-events-none absolute text-[8px] font-bold leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{pct}</span>
+        <span className="pointer-events-none absolute text-[9px] font-bold leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">{pct}</span>
       </button>
 
       {open && createPortal(

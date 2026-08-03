@@ -1015,7 +1015,7 @@ export function ChatBar({
               the composer surface (9400-style). In-flow so the root's measured
               height (thread clearance) accounts for them automatically. The
               context ring pins to the RIGHT edge, beside the effort pill. */}
-          <div className="relative mt-2 flex items-center justify-center gap-2">
+          <div className="mobile-pills-row relative mt-2 flex items-center justify-center gap-2">
             <span className="absolute -left-1 top-1/2 -translate-y-1/2">
               <GatewayStatusRing />
             </span>

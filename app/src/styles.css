@@ -1976,6 +1976,12 @@ text-* variant utilities. */ .btn-arc {
     transition: bottom 200ms cubic-bezier(0.25, 0.1, 0.25, 1) !important;
     z-index: 20 !important;
   }
+  /* Pills (profile/model/effort) read --composer-control-size for their
+     height — bump it on mobile only, scoped to the pills row so the
+     composer's +/mic/send icon buttons keep their 1.5rem size. */
+  .mobile-pills-row {
+    --composer-control-size: 1.875rem;
+  }
   [data-slot='composer-surface'] {
     overflow: hidden !important;
     /* 44px (2.75rem) primary buttons + 2 × 5px surface pad = 54px. Any less

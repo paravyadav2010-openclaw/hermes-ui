@@ -87,16 +87,21 @@ export function MobileLayout({
       >
         {children}
         {/* Bottom fade — chat blends into the composer instead of clipping
-            sharply. Opaque --dt-background at the screen bottom (matches the
-            chrome bg behind the composer), transparent at the top of the fade
-            zone. Sits at z-10: above thread content, below composer (z-20)
-            and jump button (z-20), so the pills/composer float on top. */}
+            sharply. The fade lives ENTIRELY ABOVE the composer stack: its
+            bottom edge is the composer's top (safe-area + keyboard inset +
+            0.875rem + measured stack), so it only ever covers the chat area —
+            never the composer surface, the pills, or the rings. Opaque
+            --dt-background at that edge (matches the app bg behind the
+            composer), transparent after ~3rem. pointer-events:none. */}
         <div
           aria-hidden
-          className="pointer-events-none fixed inset-x-0 bottom-0 z-10"
+          className="pointer-events-none fixed inset-x-0 z-[5]"
           style={{
-            height: 'calc(var(--composer-stack-height, var(--composer-measured-height, 3.875rem)) + 8rem)',
-            background: 'linear-gradient(to top, var(--dt-background) 0%, transparent 100%)'
+            bottom:
+              'calc(max(env(safe-area-inset-bottom,0px), var(--keyboard-inset,0px)) + 0.875rem + var(--composer-stack-height, var(--composer-measured-height, 3.875rem)))',
+            height: '9rem',
+            background:
+              'linear-gradient(to top, var(--dt-background) 0%, var(--dt-background) 33%, transparent 100%)'
           }}
         />
       </div>

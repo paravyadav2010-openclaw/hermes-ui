@@ -85,7 +85,7 @@ export function GatewayStatusRing() {
             />
           </svg>
         </span>
-        <span className="pointer-events-none absolute text-[11px] font-bold leading-none text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+        <span className="pointer-events-none absolute text-[11px] font-bold leading-none text-(--ui-text-primary) drop-shadow-[0_1px_2px_rgba(0,0,0,0.35)]">
           {label}
         </span>
       </button>

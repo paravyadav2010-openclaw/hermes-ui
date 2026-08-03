@@ -23,6 +23,10 @@ interface UseComposerVoiceArgs {
   insertText: (text: string) => void
   /** Space-joined append for live streaming dictation chunks. */
   insertStreaming?: (text: string) => void
+  /** Replace the whole draft (native dictation live typing). */
+  setComposerText?: (text: string) => void
+  /** Read the current draft (native dictation baseDraft capture). */
+  getDraftText?: () => string
   maxRecordingSeconds: number
   onSubmit: ChatBarProps['onSubmit']
   onTranscribeAudio: ChatBarProps['onTranscribeAudio']
@@ -42,6 +46,8 @@ export function useComposerVoice({
   focusInput,
   insertText,
   insertStreaming,
+  setComposerText,
+  getDraftText,
   maxRecordingSeconds,
   onSubmit,
   onTranscribeAudio,
@@ -56,7 +62,9 @@ export function useComposerVoice({
     maxRecordingSeconds,
     onTranscript: insertText,
     onTranscribeAudio,
-    onStreamingTranscript: text => insertStreaming?.(text)
+    onStreamingTranscript: text => insertStreaming?.(text),
+    getDraftText: getDraftText,
+    onLiveDraft: setComposerText
   })
 
   const pendingResponse = () => {

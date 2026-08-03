@@ -680,7 +680,9 @@ export function ChatBar({
     maxRecordingSeconds,
     onSubmit,
     onTranscribeAudio,
-    sessionId
+    sessionId,
+    setComposerText,
+    getDraftText: () => draftRef.current
   })
 
   const contextMenu = (

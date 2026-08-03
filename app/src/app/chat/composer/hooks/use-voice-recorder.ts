@@ -15,6 +15,10 @@ interface VoiceRecorderOptions {
   onInterim?: (text: string) => void
   /** Live word-by-word streaming: append each chunk transcript with a space. */
   onStreamingTranscript?: (text: string) => void
+  /** Read the current composer draft (hermex-style baseDraft capture). */
+  getDraftText?: () => string
+  /** Replace the whole draft on every partial (native dictation live typing). */
+  onLiveDraft?: (text: string) => void
 }
 
 // Web Speech API recognition handle. iOS Safari/WKWebView expose it as
@@ -51,7 +55,9 @@ export function useVoiceRecorder({
   focusInput,
   onTranscript,
   onInterim,
-  onStreamingTranscript
+  onStreamingTranscript,
+  getDraftText,
+  onLiveDraft
 }: VoiceRecorderOptions) {
   const { t } = useI18n()
   const voiceCopy = t.notifications.voice
@@ -392,6 +398,20 @@ export function useVoiceRecorder({
       return false
     }
 
+    // hermex-style baseDraft capture: the draft text at the moment dictation
+    // starts becomes the prefix; every partial REPLACES the draft with
+    // `baseDraft + transcript` so words type live into the composer.
+    const baseDraft = (getDraftText?.() ?? '').trim()
+    const compose = (transcript: string) => {
+      const t = transcript.trim()
+
+      if (!t) {
+        return baseDraft
+      }
+
+      return baseDraft ? `${baseDraft} ${t}` : t
+    }
+
     void speech
       .addListener?.('partial', data => {
         const text = (data?.text ?? '').trim()
@@ -399,6 +419,9 @@ export function useVoiceRecorder({
         if (text) {
           setInterimText(text)
           onInterim?.(text)
+          if (onLiveDraft) {
+            onLiveDraft(compose(text))
+          }
         }
       })
       .then(handle => {
@@ -433,7 +456,14 @@ export function useVoiceRecorder({
         setVoiceStatus('idle')
 
         if (text) {
-          onTranscript(text)
+          // Live dictation already replaces the draft on every partial — the
+          // final transcript is already typed in. Commit the final composed
+          // draft once (replace, not append) to normalize trailing partials.
+          if (onLiveDraft) {
+            onLiveDraft(compose(text))
+          } else {
+            onTranscript(text)
+          }
         } else {
           notify({ kind: 'warning', title: voiceCopy.noSpeechDetected, message: voiceCopy.tryRecordingAgain })
         }
@@ -473,7 +503,7 @@ export function useVoiceRecorder({
       })
 
     return true
-  }, [focusInput, notify, notifyError, onInterim, onStreamingTranscript, onTranscribeAudio, startStreaming, stopNativeSpeech, voiceCopy])
+  }, [focusInput, getDraftText, notify, notifyError, onInterim, onLiveDraft, onStreamingTranscript, onTranscript, onTranscribeAudio, startStreaming, stopNativeSpeech, voiceCopy])
 
   const dictate = () => {
     if (recognitionRef.current || voiceStatus === 'dictating' || nativeSpeechRef.current) {

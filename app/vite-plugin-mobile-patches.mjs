@@ -140,18 +140,32 @@ const GESTURE_SCRIPT = `(function() {
 const HOME_SCREEN_BANNER = `(function() {
   if (!('ontouchstart' in window)) return;
   if (window.navigator.standalone) return;
+  // Skip inside the native Capacitor wrapper (com.pravdev.hermesmobile) — the
+  // banner is only for Safari web users; the native app IS the installed app.
+  // Guard is required: this script is injected into <head>, where
+  // document.body is null — an unguarded appendChild throws on every launch
+  // and breaks native UI probes. (fix 2026-08-04, finch:work)
+  if (window.Capacitor && typeof window.Capacitor.isNativePlatform === 'function' && window.Capacitor.isNativePlatform()) return;
   try { if (localStorage.getItem('hermes-hs-banner-dismissed')) return; } catch(e) { return; }
-  var banner = document.createElement('div');
-  banner.id = 'hermes-hs-banner';
-  banner.innerHTML = '<div style="display:flex;align-items:center;gap:10px;flex:1"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M5 20V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M12 4v8"/><path d="m9 9 3 3 3-3"/></svg><div style="flex:1;font-size:13px;line-height:1.3"><div style="font-weight:600;margin-bottom:2px">Install Hermes</div><div style="opacity:0.7;font-size:12px">Share \\u2192 Add to Home Screen for full-screen app</div></div><button id="hermes-hs-close" style="background:none;border:none;color:inherit;padding:4px;cursor:pointer;opacity:0.5;font-size:18px;line-height:1">\\u2715</button></div>';
-  banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:rgba(20,20,22,0.92);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);color:#fff;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));font-family:-apple-system,BlinkMacSystemFont,sans-serif;transform:translateY(100%);transition:transform 0.4s cubic-bezier(.22,1,.36,1);border-top:1px solid rgba(255,255,255,0.08);';
-  document.body.appendChild(banner);
-  requestAnimationFrame(function() { banner.style.transform = 'translateY(0)'; });
-  document.getElementById('hermes-hs-close').addEventListener('click', function() {
-    banner.style.transform = 'translateY(100%)';
-    try { localStorage.setItem('hermes-hs-banner-dismissed', '1'); } catch(e) {}
-    setTimeout(function() { banner.remove(); }, 400);
-  });
+  function showBanner() {
+    if (!document.body) return;
+    var banner = document.createElement('div');
+    banner.id = 'hermes-hs-banner';
+    banner.innerHTML = '<div style="display:flex;align-items:center;gap:10px;flex:1"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16"/><path d="M5 20V6a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v14"/><path d="M12 4v8"/><path d="m9 9 3 3 3-3"/></svg><div style="flex:1;font-size:13px;line-height:1.3"><div style="font-weight:600;margin-bottom:2px">Install Hermes</div><div style="opacity:0.7;font-size:12px">Share \\u2192 Add to Home Screen for full-screen app</div></div><button id="hermes-hs-close" style="background:none;border:none;color:inherit;padding:4px;cursor:pointer;opacity:0.5;font-size:18px;line-height:1">\\u2715</button></div>';
+    banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:99999;background:rgba(20,20,22,0.92);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);color:#fff;padding:12px 16px;padding-bottom:calc(12px + env(safe-area-inset-bottom,0px));font-family:-apple-system,BlinkMacSystemFont,sans-serif;transform:translateY(100%);transition:transform 0.4s cubic-bezier(.22,1,.36,1);border-top:1px solid rgba(255,255,255,0.08);';
+    document.body.appendChild(banner);
+    requestAnimationFrame(function() { banner.style.transform = 'translateY(0)'; });
+    document.getElementById('hermes-hs-close').addEventListener('click', function() {
+      banner.style.transform = 'translateY(100%)';
+      try { localStorage.setItem('hermes-hs-banner-dismissed', '1'); } catch(e) {}
+      setTimeout(function() { banner.remove(); }, 400);
+    });
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', showBanner);
+  } else {
+    showBanner();
+  }
 })()`
 
 const KEYBOARD_HANDLER = `(function() {

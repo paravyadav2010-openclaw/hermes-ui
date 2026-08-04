@@ -2,6 +2,7 @@ import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { KbdCombo } from '@/components/ui/kbd'
 import { Tip } from '@/components/ui/tooltip'
+import { useMobile } from '@/hooks/use-mobile'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { AudioLines, iconSize, Layers3, Loader2, Square, SteeringWheel } from '@/lib/icons'
@@ -257,6 +258,17 @@ function ConversationIndicator({
   )
 }
 
+function DictationBars() {
+  return (
+    <span aria-hidden="true" className="dictation-mic-bars">
+      <span />
+      <span />
+      <span />
+      <span />
+    </span>
+  )
+}
+
 function DictationButton({
   disabled,
   state,
@@ -269,6 +281,7 @@ function DictationButton({
   onToggle: () => void
 }) {
   const { t } = useI18n()
+  const isMobile = useMobile()
   const c = t.composer
   const active = state.active || status !== 'idle'
 
@@ -288,7 +301,7 @@ function DictationButton({
           'size-(--composer-control-primary-size) shrink-0 rounded-full border border-border/65 p-0',
           'bg-(--chrome-action-hover)/40 text-(--ui-text-tertiary) hover:bg-(--chrome-action-hover) hover:text-foreground',
           'data-[active=true]:bg-accent data-[active=true]:text-foreground',
-          status === 'dictating' && 'dictation-mic-ripple bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
+          status === 'dictating' && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
           status === 'recording' && 'bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary',
           status === 'transcribing' && 'bg-primary/10 text-primary'
         )}
@@ -306,6 +319,8 @@ function DictationButton({
           <Square className={cn('fill-current', iconSize.xs)} />
         ) : status === 'transcribing' ? (
           <Loader2 className={cn('animate-spin', iconSize.sm)} />
+        ) : status === 'dictating' && isMobile ? (
+          <DictationBars />
         ) : (
           <Codicon name="mic" size="0.875rem" />
         )}

@@ -644,34 +644,51 @@
   animation: quest-glow 1.8s ease-in-out infinite;
 }
 
-/* Native dictation keeps its transcript exclusively in the composer. This
-   lightweight ripple is the listening indicator and avoids a second text UI. */
-@keyframes dictation-mic-ripple {
-  0% {
-    opacity: 0.68;
-    transform: scale(0.72);
-  }
-  72%,
+/* Native dictation keeps its transcript exclusively in the composer. The mic
+   becomes a compact, non-text audio-meter while it listens. */
+@keyframes dictation-mic-bar {
+  0%,
   100% {
-    opacity: 0;
-    transform: scale(1.55);
+    opacity: 0.5;
+    transform: scaleY(0.35);
+  }
+  50% {
+    opacity: 1;
+    transform: scaleY(1);
   }
 }
 
-.dictation-mic-ripple {
-  isolation: isolate;
-  position: relative;
-}
+@media (hover: none) and (pointer: coarse) {
+  .dictation-mic-bars {
+    align-items: center;
+    display: flex;
+    gap: 0.125rem;
+    height: 1rem;
+    justify-content: center;
+    pointer-events: none;
+  }
 
-.dictation-mic-ripple::after {
-  animation: dictation-mic-ripple 1.25s ease-out infinite;
-  border: 1px solid color-mix(in srgb, var(--primary) 58%, transparent);
-  border-radius: inherit;
-  content: '';
-  inset: 0;
-  pointer-events: none;
-  position: absolute;
-  z-index: -1;
+  .dictation-mic-bars > span {
+    animation: dictation-mic-bar 0.78s ease-in-out infinite;
+    background: currentColor;
+    border-radius: 999px;
+    height: 0.875rem;
+    transform-origin: center;
+    width: 0.125rem;
+    will-change: opacity, transform;
+  }
+
+  .dictation-mic-bars > span:nth-child(2) {
+    animation-delay: 0.13s;
+  }
+
+  .dictation-mic-bars > span:nth-child(3) {
+    animation-delay: 0.26s;
+  }
+
+  .dictation-mic-bars > span:nth-child(4) {
+    animation-delay: 0.39s;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -682,10 +699,10 @@
       0 0 0.625rem color-mix(in srgb, var(--color-amber-500, #f59e0b) 55%, transparent);
   }
 
-  .dictation-mic-ripple::after {
+  .dictation-mic-bars > span {
     animation: none;
-    opacity: 0.55;
-    transform: scale(1.18);
+    opacity: 0.85;
+    transform: scaleY(0.72);
   }
 }
 
@@ -2099,12 +2116,11 @@ text-* variant utilities. */ .btn-arc {
     grid-template-areas: 'menu input controls' !important;
     align-items: center !important;
   }
-  /* Pad thread bottom so last messages aren't hidden behind composer —
-     composer now sits low (0.875rem + safe area), surface + floating pills
-     ≈ 6.9rem, so 12rem leaves comfortable air while chatting. Keyboard
-     inset added so the last message clears the raised composer too. */
+  /* Keep only enough clearance for the opaque composer surface itself. The
+     floating pills intentionally overlap the chat plane rather than reserving
+     an empty band above the final message. */
   [data-slot='aui_thread-viewport'] {
-    padding-bottom: calc(5rem + var(--composer-shell-pad-block-end, 0px) + var(--keyboard-inset, 0px)) !important;
+    padding-bottom: calc(3rem + var(--composer-shell-pad-block-end, 0px) + var(--keyboard-inset, 0px)) !important;
     /* Bottom fade — BURNED INTO the chat surface via mask (no overlay div, so
        it can never paint over the composer, pills, rings, or status bar).
        The fade lives ONLY in the region the opaque composer box covers

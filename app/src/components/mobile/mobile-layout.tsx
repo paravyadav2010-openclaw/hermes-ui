@@ -1,4 +1,4 @@
-import { type ReactNode, useEffect } from 'react'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { useStore } from '@nanostores/react'
 import { useNavigate } from 'react-router-dom'
 import { MobileDrawer } from './mobile-drawer'
@@ -7,7 +7,7 @@ import { BottomSheet } from './bottom-sheet'
 import { PREVIEW_PANE_ID, FILE_BROWSER_PANE_ID } from '@/store/layout'
 import { REVIEW_PANE_ID } from '@/store/review'
 import { PANE_TOGGLE_REVEAL_EVENT } from '@/components/pane-shell'
-import { $mobileDrawerOpen, closeMobileDrawer, openMobileDrawer, toggleMobileSheet } from '@/store/mobile'
+import { $mobileDrawerOpen, $mobileSheetOpen, closeMobileDrawer, openMobileDrawer, toggleMobileSheet } from '@/store/mobile'
 import { NEW_CHAT_ROUTE } from '@/app/routes'
 import { useSessionsSwipe } from '@/hooks/use-sessions-swipe'
 import { useKeyboardInset } from '@/hooks/use-keyboard-inset'
@@ -58,6 +58,53 @@ export function MobileLayout({
     () => openMobileDrawer('chat-sidebar'),
     () => closeMobileDrawer(),
   )
+
+  // Bottom-swipe-up gesture → More menu (user 2026-08-04 #12, repeated twice).
+  // Zone rule (user's own words): the swipe must START at or BELOW the
+  // composer's top edge (data-slot="composer-root"); a swipe starting above
+  // the composer scrolls the thread and must NOT open the menu. Vertical-only
+  // (|dx| < 40) so it never collides with the horizontal sessions swipe.
+  // Document-level listeners per the iOS-safe pattern in use-sessions-swipe.
+  const moreMenuSwipeRef = useRef({ sessionsOpen })
+  moreMenuSwipeRef.current = { sessionsOpen }
+  useEffect(() => {
+    const SWIPE_UP_THRESHOLD = 60
+    let start: { x: number; y: number } | null = null
+
+    function onTouchStart(e: TouchEvent) {
+      const t = e.touches[0]
+      if (!t) return
+      start = { x: t.clientX, y: t.clientY }
+    }
+
+    function onTouchEnd(e: TouchEvent) {
+      if (!start) return
+      const t = e.changedTouches[0]
+      if (!t) return
+      const dx = t.clientX - start.x
+      const dy = t.clientY - start.y
+      const startY = start.y
+      start = null
+      const s = moreMenuSwipeRef.current
+      if (s.sessionsOpen) return
+      if ($mobileSheetOpen.get() === 'more-menu') return
+      if (dy > -SWIPE_UP_THRESHOLD || Math.abs(dx) >= 40) return
+      // Measure the composer live so the keyboard inset and dock/float states
+      // are honored; hidden composer (null) → zone collapses, gesture inert.
+      const composer = document.querySelector('[data-slot="composer-root"]')
+      const composerTop = composer ? composer.getBoundingClientRect().top : window.innerHeight
+      if (startY < composerTop) return
+      triggerHaptic('open')
+      toggleMobileSheet('more-menu')
+    }
+
+    document.addEventListener('touchstart', onTouchStart, { passive: true })
+    document.addEventListener('touchend', onTouchEnd, { passive: true })
+    return () => {
+      document.removeEventListener('touchstart', onTouchStart)
+      document.removeEventListener('touchend', onTouchEnd)
+    }
+  }, [])
 
   const newChatFab = (
     <Button
